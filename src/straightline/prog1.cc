@@ -9,6 +9,7 @@ A::Stm *Prog() {
   // b = (print(a, a-1), 10*a);
   A::Exp *op_exp1 = new A::OpExp(new A::IdExp("a"), A::MINUS, new A::NumExp(1));
 
+
   auto exp_list1 = new A::PairExpList(new A::IdExp("a"), new A::LastExpList(op_exp1));
   A::Stm *pr_stm1 = new A::PrintStm(exp_list1);
 
