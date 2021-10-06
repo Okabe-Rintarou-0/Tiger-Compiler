@@ -1,30 +1,32 @@
 #include "straightline/slp.h"
-
+#include <algorithm>
 #include <iostream>
 
 namespace A {
 int A::CompoundStm::MaxArgs() const {
-  // TODO: put your code here (lab1).
+  return std::max(stm1->MaxArgs(), stm2->MaxArgs());
 }
 
 Table *A::CompoundStm::Interp(Table *t) const {
-  // TODO: put your code here (lab1).
+  Table* t1 = stm1->Interp(t);
+  return stm2->Interp(t1);
 }
 
 int A::AssignStm::MaxArgs() const {
-  // TODO: put your code here (lab1).
+  return exp->MaxArgs();
 }
 
 Table *A::AssignStm::Interp(Table *t) const {
-  // TODO: put your code here (lab1).
+  IntAndTable *expT = exp->Interp(t);
+  return expT->t->Update(id, expT->i);
 }
 
 int A::PrintStm::MaxArgs() const {
-  // TODO: put your code here (lab1).
+  return std::max(exps->MaxArgs(), exps->NumExps());
 }
 
 Table *A::PrintStm::Interp(Table *t) const {
-  // TODO: put your code here (lab1).
+  return exps->Interp(t)->t;
 }
 
 

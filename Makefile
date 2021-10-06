@@ -8,11 +8,19 @@ docker-pull:
 
 docker-run:
 	docker run -it --privileged -p 2222:22 \
+<<<<<<< HEAD
 		-v $(shell pwd):/home/stu/tiger-compiler ipadsse302/tigerlabs_env:latest
 
 docker-run-backend:
 	docker run -dt --privileged -p 2222:22 \
 		-v $(shell pwd):/home/stu/tiger-compiler ipadsse302/tigerlabs_env:latest
+=======
+		-v /home/a923048992/compilers-2021:/home/stu/tiger-compiler ipadsse302/tigerlabs_env:latest
+
+docker-run-backend:
+	docker run -dt --privileged -p 2222:22 \
+		-v /home/a923048992/compilers-2021:/home/stu/tiger-compiler ipadsse302/tigerlabs_env:latest
+>>>>>>> lab1
 
 transform:
 	find src scripts testdata -type f | xargs -I % sh -c 'dos2unix -n % /tmp/tmp; mv -f /tmp/tmp % || true;'

@@ -59,13 +59,21 @@ class Exp {
   // TODO: you'll have to add some definitions here (lab1).
   // Hints: You may add interfaces like `int MaxArgs()`,
   //        and ` IntAndTable *Interp(Table *)`
+  public:
+    virtual int MaxArgs() const = 0;
+    virtual IntAndTable *Interp(Table *) const = 0;
 };
 
 class IdExp : public Exp {
  public:
   explicit IdExp(std::string id) : id(std::move(id)) {}
   // TODO: you'll have to add some definitions here (lab1).
-
+  int MaxArgs() const override {
+      return 0;
+  }
+  IntAndTable *Interp(Table *t) const override {
+      return new IntAndTable(t->LookUp(id), t);
+  }
  private:
   std::string id;
 };
@@ -74,7 +82,12 @@ class NumExp : public Exp {
  public:
   explicit NumExp(int num) : num(num) {}
   // TODO: you'll have to add some definitions here.
-
+  int MaxArgs() const override {
+      return 0;
+  }
+  IntAndTable *Interp(Table *t) const override {
+      return new IntAndTable(num, t);
+  }
  private:
   int num;
 };
@@ -83,7 +96,23 @@ class OpExp : public Exp {
  public:
   OpExp(Exp *left, BinOp oper, Exp *right)
       : left(left), oper(oper), right(right) {}
-
+  int MaxArgs() const override {
+      return 0;
+  }
+  IntAndTable *Interp(Table *t) const override {
+      IntAndTable *lt = left->Interp(t);
+      IntAndTable *rt = right->Interp(t);
+      switch (oper) {
+          case PLUS:
+              return new IntAndTable(lt->i + rt->i, t);
+          case MINUS:
+              return new IntAndTable(lt->i - rt->i, t);
+          case TIMES:
+              return new IntAndTable(lt->i * rt->i, t);
+          case DIV:
+              return new IntAndTable(lt->i / rt->i, t);
+      }
+  }
  private:
   Exp *left;
   BinOp oper;
@@ -93,7 +122,13 @@ class OpExp : public Exp {
 class EseqExp : public Exp {
  public:
   EseqExp(Stm *stm, Exp *exp) : stm(stm), exp(exp) {}
-
+  int MaxArgs() const override {
+      return stm->MaxArgs();
+  }
+  IntAndTable *Interp(Table *t) const override {
+      Table *stmT = stm->Interp(t);
+      return exp->Interp(stmT);
+  }
  private:
   Stm *stm;
   Exp *exp;
@@ -101,6 +136,9 @@ class EseqExp : public Exp {
 
 class ExpList {
  public:
+    virtual int MaxArgs() const = 0;
+    virtual int NumExps() const = 0;
+    virtual IntAndTable *Interp(Table *) const = 0;
   // TODO: you'll have to add some definitions here (lab1).
   // Hints: You may add interfaces like `int MaxArgs()`, `int NumExps()`,
   //        and ` IntAndTable *Interp(Table *)`
@@ -110,6 +148,19 @@ class PairExpList : public ExpList {
  public:
   PairExpList(Exp *exp, ExpList *tail) : exp(exp), tail(tail) {}
   // TODO: you'll have to add some definitions here (lab1).
+  int MaxArgs() const override {
+      int maxArgs = exp->MaxArgs();
+      if (tail != nullptr) {
+        maxArgs = std::max(maxArgs, tail->MaxArgs());
+      }
+      return maxArgs;
+  }
+  int NumExps() const override {
+      return 1 + tail->NumExps();
+  }
+  IntAndTable *Interp(Table *t) const override {
+      return tail->Interp(t);
+  }
  private:
   Exp *exp;
   ExpList *tail;
@@ -119,6 +170,15 @@ class LastExpList : public ExpList {
  public:
   LastExpList(Exp *exp) : exp(exp) {}
   // TODO: you'll have to add some definitions here (lab1).
+  int MaxArgs() const override {
+    return exp->MaxArgs();
+  }
+  int NumExps() const override {
+      return 1;
+  }
+  IntAndTable * Interp(Table *t) const override {
+      return exp->Interp(t);
+  }
  private:
   Exp *exp;
 };
