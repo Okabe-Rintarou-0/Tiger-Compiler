@@ -4,8 +4,6 @@
 
 namespace absyn {
 
-bool insideLoop = false;
-
 void AbsynTree::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                            err::ErrorMsg *errormsg) const {
   root_->SemAnalyze(venv, tenv, 0, errormsg);
@@ -245,9 +243,7 @@ type::Ty *WhileExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     errormsg->Error(pos_, "wrong test type");
   }
 
-  insideLoop = true;
-  type::Ty *bodyTy = body_->SemAnalyze(venv, tenv, labelcount, errormsg);
-  insideLoop = false;
+  type::Ty *bodyTy = body_->SemAnalyze(venv, tenv, labelcount + 1, errormsg);
 
   if (!bodyTy->IsSameType(type::VoidTy::Instance())) {
     errormsg->Error(pos_, "while body must produce no value");
@@ -276,9 +272,7 @@ type::Ty *ForExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     errormsg->Error(hi_->pos_, "for exp's range type is not integer");
   }
 
-  insideLoop = true;
-  type::Ty *bodyTy = body_->SemAnalyze(venv, tenv, labelcount, errormsg);
-  insideLoop = false;
+  type::Ty *bodyTy = body_->SemAnalyze(venv, tenv, labelcount + 1, errormsg);
 
   // body exp should be void type
   if (!bodyTy->IsSameType(type::VoidTy::Instance())) {
@@ -292,7 +286,7 @@ type::Ty *ForExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *BreakExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                int labelcount, err::ErrorMsg *errormsg) const {
-  if (!insideLoop) {
+  if (labelcount > 0) {
     errormsg->Error(pos_, "break is not inside any loop");
   }
   return type::VoidTy::Instance();
