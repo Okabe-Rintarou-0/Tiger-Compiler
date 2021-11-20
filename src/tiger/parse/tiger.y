@@ -138,16 +138,19 @@ exp: onevar {$$ = new absyn::VarExp(scanner_.GetTokPos(), $1);}
   | WHILE exp DO seq_or_one_exp {$$ = new absyn::WhileExp(scanner_.GetTokPos(), $2, $4);}
   | FOR ID ASSIGN exp TO exp DO seq_or_one_exp {$$ = new absyn::ForExp(scanner_.GetTokPos(), $2, $4, $6, $8);}
   | BREAK {$$ = new absyn::BreakExp(scanner_.GetTokPos());}
-  | LET decs IN expseq END {$$ = new absyn::LetExp(scanner_.GetTokPos(), $2, $4);}
+  | expseq {$$ = $1;}
+  | LET decs IN sequencing_exps END {
+    auto seq = new absyn::SeqExp(scanner_.GetTokPos(), $4);
+    $$ = new absyn::LetExp(scanner_.GetTokPos(), $2, seq);
+  }
   | LET decs IN END {$$ = new absyn::LetExp(scanner_.GetTokPos(), $2, nullptr);}
   | ID subexp OF exp {$$ = new absyn::ArrayExp(scanner_.GetTokPos(), $1, $2, $4);}
   | LPAREN RPAREN {$$ = new absyn::VoidExp(scanner_.GetTokPos());}
   | LPAREN exp RPAREN {$$ = $2;}
   ;
   
-expseq: 
-  sequencing_exps {$$ = new absyn::SeqExp(scanner_.GetTokPos(), $1);} 
-  | LPAREN expseq RPAREN {$$ = $2;}
+expseq:
+  LPAREN sequencing_exps RPAREN {$$ = new absyn::SeqExp(scanner_.GetTokPos(), $2);}
   ;
 /************ dec starts here ******************/
 dec: fundecs {$$ = new absyn::FunctionDec(scanner_.GetTokPos(), $1);}
