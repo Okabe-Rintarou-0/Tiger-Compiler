@@ -129,6 +129,23 @@ void ProgTr::Translate() { /* TODO: Put your lab5 code here */
   absyn_tree_->Translate(venv_.get(), tenv_.get(), main_level_.get(), nullptr,
                          errormsg_.get());
 }
+
+/**
+ * MEM( + ( CONST k, MEM( +(CONST 2*wordsize, ( …MEM(+(CONST 2*wordsize, TEMP
+ * FP) …))))
+ */
+tree::Exp *FramePtr(Level *level, Level *acc_level,
+                    frame::RegManager *reg_manager) {
+  tree::Exp *framePtr = new tree::TempExp(reg_manager->FramePointer());
+  while (level != acc_level) {
+    int wordSize = reg_manager->WordSize();
+    tree::Exp *offset = new tree::ConstExp(2 * wordSize);
+    tree::Exp *stat_link = new tree::BinopExp(tree::PLUS_OP, offset, framePtr);
+    framePtr = new tree::MemExp(stat_link);
+    level = level->parent_;
+  }
+  return framePtr;
+}
 } // namespace tr
 
 namespace absyn {
@@ -144,73 +161,201 @@ tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-//  auto varEntry = venv->Look()
+  auto varEntry = dynamic_cast<env::VarEntry *>(venv->Look(sym_));
+  auto access = varEntry->access_;
+  tree::Exp *framePtr = FramePtr(level, access->level_, reg_manager);
+  tr::Exp *varExp = new tr::ExExp(access->access_->ToExp(framePtr));
+  return new tr::ExpAndTy(varExp, varEntry->ty_);
 }
 
 tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
                                   err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  // by call var->translate, we can get the address stored by the record var.
+  // notice that the record var is actually a pointer, which points to the real
+  // data stored in the heap.
+  auto expAndTy = var_->Translate(venv, tenv, level, label, errormsg);
+  auto varExp = expAndTy->exp_->UnEx();
+  auto varTy = expAndTy->ty_;
+
+  auto recordTy = dynamic_cast<type::RecordTy *>(varTy);
+  auto fieldList = recordTy->fields_->GetList();
+  int idx = 0;
+  int wordSize = reg_manager->WordSize();
+
+  // get the type of the field and count the offset
+  type::Ty *fieldTy;
+  for (auto field : fieldList) {
+    if (field->name_ == sym_) {
+      fieldTy = field->ty_;
+      break;
+    }
+    ++idx;
+  }
+
+  auto offset = new tree::ConstExp(idx * wordSize);
+  auto fieldAddr = new tree::BinopExp(tree::PLUS_OP, varExp, offset);
+  auto fieldExp = new tr::ExExp(new tree::MemExp(fieldAddr));
+  return new tr::ExpAndTy(fieldExp, fieldTy);
 }
 
 tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                       tr::Level *level, temp::Label *label,
                                       err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  auto expAndTy = var_->Translate(venv, tenv, level, label, errormsg);
+  auto varExp = expAndTy->exp_->UnEx();
+  auto ty = expAndTy->ty_;
+
+  int wordSize = reg_manager->WordSize();
+  auto index =
+      subscript_->Translate(venv, tenv, level, label, errormsg)->exp_->UnEx();
+  auto w = new tree::ConstExp(wordSize);
+  auto offset = new tree::BinopExp(tree::MUL_OP, index, w);
+  auto subVarAddr = new tree::BinopExp(tree::PLUS_OP, varExp, offset);
+  auto subVarExp = new tr::ExExp(new tree::MemExp(subVarAddr));
+  return new tr::ExpAndTy(subVarExp, ty);
 }
 
 tr::ExpAndTy *VarExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  return var_->Translate(venv, tenv, level, label, errormsg);
 }
 
 tr::ExpAndTy *NilExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  return new tr::ExpAndTy(nullptr, type::NilTy::Instance());
 }
 
 tr::ExpAndTy *IntExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  auto constExp = new tr::ExExp(new tree::ConstExp(val_));
+  return new tr::ExpAndTy(constExp, type::IntTy::Instance());
 }
 
 tr::ExpAndTy *StringExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  auto lab = temp::LabelFactory::NewLabel();
+  auto labExp = new tree::NameExp(lab);
+  return new tr::ExpAndTy(new tr::ExExp(labExp), type::StringTy::Instance());
 }
 
 tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                  tr::Level *level, temp::Label *label,
                                  err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  auto funExp =
+      new tree::NameExp(temp::LabelFactory::NamedLabel(func_->Name()));
+  auto argExpList = new tree::ExpList;
+  auto argList = args_->GetList();
+  for (auto arg : argList) {
+    auto argExp =
+        arg->Translate(venv, tenv, level, label, errormsg)->exp_->UnEx();
+    argExpList->Append(argExp);
+  }
+  auto callExp = new tree::CallExp(funExp, argExpList);
+  auto funEntry = dynamic_cast<env::FunEntry *>(venv->Look(func_));
+  return new tr::ExpAndTy(new tr::ExExp(callExp), funEntry->result_);
 }
 
 tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                tr::Level *level, temp::Label *label,
                                err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  auto leftExp =
+      left_->Translate(venv, tenv, level, label, errormsg)->exp_->UnEx();
+  auto rightExp =
+      right_->Translate(venv, tenv, level, label, errormsg)->exp_->UnEx();
+  auto oper = (tree::BinOp)oper_;
+  auto opExp = new tree::BinopExp(oper, leftExp, rightExp);
+  /// TODO: fix this naive method
+  return new tr::ExpAndTy(new tr::ExExp(opExp), type::IntTy::Instance());
 }
 
 tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  auto recordTy = tenv->Look(typ_);
+  auto efieldList = fields_->GetList();
+  auto fieldLen = efieldList.size();
+  int wordSize = reg_manager->WordSize();
+
+  // alloc space
+  auto r = temp::TempFactory::NewTemp();
+  auto tempExp = new tree::TempExp(r);
+  auto mallocExp = new tree::NameExp(temp::LabelFactory::NamedLabel("malloc"));
+  auto allocSize = fieldLen * wordSize;
+  auto sizeExp = new tree::ConstExp(allocSize);
+  auto argList = new tree::ExpList;
+  argList->Append(sizeExp);
+  auto callMallocExp = new tree::CallExp(mallocExp, argList);
+
+  auto allocStm = new tree::MoveStm(tempExp, callMallocExp);
+  auto rootSeq = new tree::SeqStm(allocStm, nullptr);
+
+  // assignment value
+  auto curSeq = rootSeq;
+  int idx = 0;
+  for (auto efield : efieldList) {
+    auto efdExp = efield->exp_->Translate(venv, tenv, level, label, errormsg)
+                      ->exp_->UnEx();
+    auto offset = new tree::ConstExp(idx * wordSize);
+    auto tempExp = new tree::TempExp(r);
+    auto fieldExp =
+        new tree::MemExp(new tree::BinopExp(tree::PLUS_OP, tempExp, offset));
+    auto assignStm = new tree::MoveStm(fieldExp, efdExp);
+    auto seq = new tree::SeqStm(assignStm, nullptr);
+    curSeq->right_ = seq;
+    curSeq = seq;
+    ++idx;
+  }
+
+  auto eseq = new tree::EseqExp(rootSeq, new tree::TempExp(r));
+  return new tr::ExpAndTy(new tr::ExExp(eseq), recordTy);
 }
 
 tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  auto expList = seq_->GetList();
+  tree::EseqExp *rootExp = nullptr;
+  tree::EseqExp *curExp = nullptr;
+  for (auto exp : expList) {
+    auto trExp =
+        exp->Translate(venv, tenv, level, label, errormsg)->exp_->UnEx();
+    auto expStm = new tree::ExpStm(trExp);
+    auto seqExp = new tree::EseqExp(expStm, nullptr);
+    if (!curExp) {
+      rootExp = curExp = seqExp;
+    } else {
+      curExp->exp_ = seqExp;
+      curExp = seqExp;
+    }
+  }
 }
 
 tr::ExpAndTy *AssignExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  auto varExp =
+      var_->Translate(venv, tenv, level, label, errormsg)->exp_->UnEx();
+  auto valueExpAndTy = exp_->Translate(venv, tenv, level, label, errormsg);
+  auto valueExp = valueExpAndTy->exp_->UnEx();
+  auto valueTy = valueExpAndTy->ty_;
+  auto assignExp = new tree::MoveStm(varExp, valueExp);
+  return new tr::ExpAndTy(new tr::NxExp(assignExp), valueTy);
 }
 
 tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,

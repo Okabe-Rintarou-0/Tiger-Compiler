@@ -66,6 +66,7 @@ public:
 private:
   std::unique_ptr<absyn::AbsynTree> absyn_tree_;
   std::unique_ptr<err::ErrorMsg> errormsg_;
+  std::unique_ptr<frame::RegManager> reg_manager;
   std::unique_ptr<Level> main_level_;
   std::unique_ptr<env::TEnv> tenv_;
   std::unique_ptr<env::VEnv> venv_;
@@ -74,6 +75,9 @@ private:
   void FillBaseVEnv();
   void FillBaseTEnv();
 };
+
+tree::Exp *FramePtr(Level *level, Level *acc_level,
+                    frame::RegManager *reg_manager);
 
 } // namespace tr
 
