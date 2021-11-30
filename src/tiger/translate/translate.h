@@ -49,7 +49,11 @@ public:
   // TODO: Put your lab5 code here */
   ProgTr(std::unique_ptr<absyn::AbsynTree> absyn,
          std::unique_ptr<err::ErrorMsg> erromsg)
-      : absyn_tree_(std::move(absyn)), errormsg_(std::move(erromsg)) {}
+      : absyn_tree_(std::move(absyn)), errormsg_(std::move(erromsg)) {
+
+    FillBaseTEnv();
+    FillBaseVEnv();
+  }
   /**
    * Translate IR tree
    */
