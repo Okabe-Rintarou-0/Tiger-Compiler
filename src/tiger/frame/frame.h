@@ -5,10 +5,9 @@
 #include <memory>
 #include <string>
 
+#include "tiger/codegen/assem.h"
 #include "tiger/frame/temp.h"
 #include "tiger/translate/tree.h"
-#include "tiger/codegen/assem.h"
-
 
 namespace frame {
 
@@ -64,6 +63,7 @@ public:
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
   temp::Map *temp_map_;
+
 protected:
   std::vector<temp::Temp *> regs_;
 };
@@ -71,13 +71,23 @@ protected:
 class Access {
 public:
   /* TODO: Put your lab5 code here */
-  
+  virtual tree::Exp *ToExp(tree::Exp *framePtr) const = 0;
   virtual ~Access() = default;
-  
 };
 
 class Frame {
   /* TODO: Put your lab5 code here */
+private:
+  temp::Label *func_;
+  std::list<Access *> formals_;
+
+public:
+  inline void Append(Access *access) { formals_.push_back(access); }
+
+  inline std::list<Access *> Formals() const { return formals_; }
+
+protected:
+  virtual Access *AllocLocal(bool escape) = 0;
 };
 
 /**
@@ -97,7 +107,8 @@ public:
    *Generate assembly for main program
    * @param out FILE object for output assembly file
    */
-  virtual void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const = 0;
+  virtual void OutputAssem(FILE *out, OutputPhase phase,
+                           bool need_ra) const = 0;
 };
 
 class StringFrag : public Frag {
@@ -125,14 +136,14 @@ class Frags {
 public:
   Frags() = default;
   void PushBack(Frag *frag) { frags_.emplace_back(frag); }
-  const std::list<Frag*> &GetList() { return frags_; }
+  const std::list<Frag *> &GetList() { return frags_; }
 
 private:
-  std::list<Frag*> frags_;
+  std::list<Frag *> frags_;
 };
 
 /* TODO: Put your lab5 code here */
-
+Frame *NewFrame(temp::Label *fun, const std::list<bool> formals);
 } // namespace frame
 
 #endif

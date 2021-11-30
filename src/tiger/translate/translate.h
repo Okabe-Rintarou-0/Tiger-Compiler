@@ -32,11 +32,28 @@ public:
   Level *parent_;
 
   /* TODO: Put your lab5 code here */
+
+  static Level *NewLevel(Level *parent, temp::Label *func,
+                         std::list<bool> formals) {
+    Level *level = new Level;
+    formals.push_front(true);
+    auto frame = frame::NewFrame(func, formals);
+    level->parent_ = parent;
+    level->frame_ = frame;
+    return level;
+  }
 };
 
 class ProgTr {
 public:
-  /* TODO: Put your lab5 code here */ 
+  // TODO: Put your lab5 code here */
+  ProgTr(std::unique_ptr<absyn::AbsynTree> absyn,
+         std::unique_ptr<err::ErrorMsg> erromsg)
+      : absyn_tree_(std::move(absyn)), errormsg_(std::move(erromsg)) {
+
+    FillBaseTEnv();
+    FillBaseVEnv();
+  }
   /**
    * Translate IR tree
    */
@@ -50,10 +67,10 @@ public:
     return std::move(errormsg_);
   }
 
-
 private:
   std::unique_ptr<absyn::AbsynTree> absyn_tree_;
   std::unique_ptr<err::ErrorMsg> errormsg_;
+  std::unique_ptr<frame::RegManager> reg_manager;
   std::unique_ptr<Level> main_level_;
   std::unique_ptr<env::TEnv> tenv_;
   std::unique_ptr<env::VEnv> venv_;
@@ -62,6 +79,9 @@ private:
   void FillBaseVEnv();
   void FillBaseTEnv();
 };
+
+tree::Exp *FramePtr(Level *level, Level *acc_level,
+                    frame::RegManager *reg_manager);
 
 } // namespace tr
 
