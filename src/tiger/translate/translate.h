@@ -10,6 +10,8 @@
 #include "tiger/frame/frame.h"
 #include "tiger/semant/types.h"
 
+#include <iostream>
+
 namespace tr {
 
 class Exp;
@@ -27,20 +29,27 @@ public:
 };
 
 class Level {
+private:
+  Level(frame::Frame *frame_, Level *parent_)
+      : frame_(frame_), parent_(parent_){};
+
 public:
   frame::Frame *frame_;
   Level *parent_;
+
+  static Level *Outermost() {
+    static auto outermost = new Level(
+        frame::NewFrame(temp::LabelFactory::NamedLabel("tigermain"), {}), nullptr);
+    return outermost;
+  }
 
   /* TODO: Put your lab5 code here */
 
   static Level *NewLevel(Level *parent, temp::Label *func,
                          std::list<bool> formals) {
-    Level *level = new Level;
     formals.push_front(true);
     auto frame = frame::NewFrame(func, formals);
-    level->parent_ = parent;
-    level->frame_ = frame;
-    return level;
+    return new Level(frame, parent);
   }
 };
 
@@ -49,11 +58,9 @@ public:
   // TODO: Put your lab5 code here */
   ProgTr(std::unique_ptr<absyn::AbsynTree> absyn,
          std::unique_ptr<err::ErrorMsg> erromsg)
-      : absyn_tree_(std::move(absyn)), errormsg_(std::move(erromsg)) {
-
-    FillBaseTEnv();
-    FillBaseVEnv();
-  }
+      : absyn_tree_(std::move(absyn)), errormsg_(std::move(erromsg)),
+        main_level_(Level::Outermost()), tenv_(std::make_unique<env::TEnv>()),
+        venv_(std::make_unique<env::VEnv>()) {}
   /**
    * Translate IR tree
    */

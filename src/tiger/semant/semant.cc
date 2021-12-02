@@ -390,7 +390,7 @@ void VarDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
   type::Ty *initTy = init_->SemAnalyze(venv, tenv, labelcount, errormsg);
   if (initTy) {
     if (!decTy) {
-      if (initTy->IsSameType(type::NilTy::Instance())) {
+      if (typeid(*initTy) == typeid(type::NilTy)) {
         errormsg->Error(pos_, "init should not be nil without type specified");
       }
     } else if (!decTy->IsSameType(initTy)) {

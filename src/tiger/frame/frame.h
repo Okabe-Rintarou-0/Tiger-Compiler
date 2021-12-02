@@ -77,7 +77,7 @@ public:
 
 class Frame {
   /* TODO: Put your lab5 code here */
-private:
+protected:
   temp::Label *func_;
   std::list<Access *> formals_;
 
@@ -86,8 +86,9 @@ public:
 
   inline std::list<Access *> Formals() const { return formals_; }
 
-protected:
   virtual Access *AllocLocal(bool escape) = 0;
+
+  virtual tree::Stm *Sp2Fp() = 0;
 };
 
 /**
@@ -141,6 +142,8 @@ public:
 private:
   std::list<Frag *> frags_;
 };
+
+tree::Stm *ProcEntryExit1(frame::Frame *frame, tree::Stm *stm);
 
 /* TODO: Put your lab5 code here */
 Frame *NewFrame(temp::Label *fun, const std::list<bool> formals);
