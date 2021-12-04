@@ -155,21 +155,21 @@ void ProgTr::Translate() { /* TODO: Put your lab5 code here */
   auto trExpAndTy = absyn_tree_->Translate(
       venv_.get(), tenv_.get(), main_level_.get(),
       temp::LabelFactory::NamedLabel("tigermain"), errormsg_.get());
-  //    auto trStm = trExpAndTy->exp_->UnNx();
-  //    trStm->Print(stdout, 0);
-  auto fragList = frags->GetList();
-  std::cout << "Frags: " << std::endl;
-  for (auto frag : fragList) {
-    if (typeid(*frag) == typeid(frame::ProcFrag)) {
-      std::cout << "ProcFrag: " << std::endl;
-      dynamic_cast<frame::ProcFrag *>(frag)->body_->Print(stdout, 0);
-      std::cout << std::endl;
-    } else {
-      auto strfrag = dynamic_cast<frame::StringFrag *>(frag);
-      std::cout << "label: " << strfrag->label_->Name()
-                << " and string: " << strfrag->str_ << std::endl;
-    }
-  }
+//  auto trStm = trExpAndTy->exp_->UnNx();
+//  trStm->Print(stdout, 0);
+//  auto fragList = frags->GetList();
+//  std::cout << "Frags: " << std::endl;
+//  for (auto frag : fragList) {
+//    if (typeid(*frag) == typeid(frame::ProcFrag)) {
+//      std::cout << "ProcFrag: " << std::endl;
+//      dynamic_cast<frame::ProcFrag *>(frag)->body_->Print(stdout, 0);
+//      std::cout << std::endl;
+//    } else {
+//      auto strfrag = dynamic_cast<frame::StringFrag *>(frag);
+//      std::cout << "label: " << strfrag->label_->Name()
+//                << " and string: " << strfrag->str_ << std::endl;
+//    }
+//  }
 }
 
 /**
@@ -203,6 +203,8 @@ tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto varEntry = dynamic_cast<env::VarEntry *>(venv->Look(sym_));
   auto access = varEntry->access_;
   tree::Exp *framePtr = FramePtr(level, access->level_);
+//  if (level == access->level_)
+//    errormsg->Error(pos_, sym_->Name() + " level equal");
   tr::Exp *varExp = new tr::ExExp(access->access_->ToExp(framePtr));
   return new tr::ExpAndTy(varExp, varEntry->ty_);
 }
@@ -310,6 +312,8 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     callExp = new tree::CallExp(new tree::NameExp(func_), argExpList);
   } else
     callExp = tr::ExternalCall(func_->Name(), argExpList);
+  //  errormsg->Error(pos_, "func: " + func_->Name() + " and size: " +
+  //                            std::to_string(argExpList->GetList().size()));
   return new tr::ExpAndTy(new tr::ExExp(callExp), funEntry->result_);
 }
 
@@ -729,6 +733,9 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     auto funcLevel = funEntry->level_;
     auto formalAccessList = funcLevel->frame_->Formals();
     auto acc_it = formalAccessList.begin();
+    ++acc_it;
+    //    errormsg->Error(pos_, "size = " +
+    //    std::to_string(formalAccessList.size()));
 
     for (; param_it != paramList.end(); formalTy_it++, param_it++, acc_it++)
       venv->Enter(

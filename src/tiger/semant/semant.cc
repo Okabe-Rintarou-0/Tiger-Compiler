@@ -286,7 +286,7 @@ type::Ty *ForExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *BreakExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                int labelcount, err::ErrorMsg *errormsg) const {
-  if (labelcount > 0) {
+  if (labelcount == 0) {
     errormsg->Error(pos_, "break is not inside any loop");
   }
   return type::VoidTy::Instance();

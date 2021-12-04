@@ -1,4 +1,5 @@
 #include "tiger/frame/x64frame.h"
+#include <iostream>
 
 extern frame::RegManager *reg_manager;
 
@@ -38,6 +39,10 @@ public:
   Access *AllocLocal(bool escape) override;
 
   tree::Stm *Sp2Fp() override;
+
+  inline int frameSize() const override {
+    return localNumber * reg_manager->WordSize();
+  }
   /// TODO: fix here
 };
 
@@ -59,31 +64,98 @@ Frame *NewFrame(temp::Label *fun, const std::list<bool> formals) {
   Frame *frame = new X64Frame;
   int idx = 1;
   for (bool escape : formals) {
-    Access *access =
-        escape ? dynamic_cast<Access *>(
-                     new InFrameAccess((idx++) * reg_manager->WordSize()))
-               : dynamic_cast<Access *>(
-                     new InRegAccess(temp::TempFactory::NewTemp()));
-    frame->Append(access);
+    frame->Append(frame->AllocLocal(escape));
   }
+  frame->func_ = fun;
   return frame;
+}
+/**
+  std::string prolog_;
+  InstrList *body_;
+  std::string epilog_;
+ */
+assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body) {
+  char buf[256];
+  std::string prolog;
+  //  sprintf(buf, ".set %s_framesize, %d\n", frame->func_->Name().c_str(),
+  //          frame->frameSize());
+  //  prolog = std::string(buf);
+  sprintf(buf, "%s:\n", frame->func_->Name().c_str());
+  prolog.append(std::string(buf));
+  sprintf(buf, "subq $%d, %%rsp\n", frame->frameSize());
+  prolog.append(std::string(buf));
+
+  sprintf(buf, "addq $%d, %%rsp\n", frame->frameSize());
+  std::string epilog = std::string(buf);
+  epilog.append("retq\n");
+  return new assem::Proc(prolog, body, epilog);
+}
+
+void ProcEntryExit2(assem::InstrList &instr_list) {
+  auto returnSink = reg_manager->ReturnSink();
+  instr_list.Append(new assem::OperInstr("", nullptr, returnSink, nullptr));
 }
 
 tree::Stm *ProcEntryExit1(frame::Frame *frame, tree::Stm *stm) {
-  auto argRegs = reg_manager->ArgRegs();
   auto formals = frame->Formals();
   int i = 0;
-  tree::Stm *viewShift = new tree::ExpStm(new tree::ConstExp(0));
+
+  auto temps = new temp::TempList(
+      {temp::TempFactory::NewTemp(), temp::TempFactory::NewTemp(),
+       temp::TempFactory::NewTemp(), temp::TempFactory::NewTemp(),
+       temp::TempFactory::NewTemp(), temp::TempFactory::NewTemp()});
+
+  tree::Stm *seqStm = new tree::ExpStm(new tree::ConstExp(0));
+
+  // save callee saved registers;
+  auto calleeSaves = reg_manager->CalleeSaves();
+  for (int i = 0; i < 6; ++i) {
+    seqStm = new tree::SeqStm(
+        seqStm, new tree::MoveStm(new tree::TempExp(temps->NthTemp(i)),
+                                  new tree::TempExp(calleeSaves->NthTemp(i))));
+  }
+
+//  std::cout << frame->func_->Name() << " " << formals.size() << std::endl;
+
+  // view shift
+  auto argRegs = reg_manager->ArgRegs();
   auto fp = reg_manager->FramePointer();
-  for (auto access : formals) {
+  auto acc_it = formals.begin();
+  for (; acc_it != formals.end(); ++acc_it) {
     if (i >= 6)
       break;
+    auto access = *acc_it;
     auto reg = argRegs->NthTemp(i++);
-    viewShift = new tree::SeqStm(
-        viewShift, new tree::MoveStm(access->ToExp(new tree::TempExp(fp)),
-                                     new tree::TempExp(reg)));
+    seqStm = new tree::SeqStm(
+        seqStm, new tree::MoveStm(access->ToExp(new tree::TempExp(fp)),
+                                  new tree::TempExp(reg)));
   }
-  return new tree::SeqStm(viewShift, stm);
+
+  int spillNumber = formals.size() - 6;
+  int wordSize = reg_manager->WordSize();
+  int offset = wordSize;
+
+  for (int i = 0; i < spillNumber; ++i) {
+    auto access = *acc_it;
+    auto memExp = new tree::MemExp(new tree::BinopExp(
+        tree::PLUS_OP, new tree::TempExp(fp), new tree::ConstExp(offset)));
+    seqStm = new tree::SeqStm(
+        seqStm,
+        new tree::MoveStm(access->ToExp(new tree::TempExp(fp)), memExp));
+    offset += wordSize;
+    ++acc_it;
+  }
+
+  seqStm = new tree::SeqStm(seqStm, stm);
+
+  // restore callee saved registers;
+  for (int i = 0; i < 6; ++i) {
+    seqStm = new tree::SeqStm(
+        seqStm, new tree::MoveStm(new tree::TempExp(calleeSaves->NthTemp(i)),
+                                  new tree::TempExp(temps->NthTemp(i))));
+  }
+
+  return seqStm;
 }
 
 } // namespace frame

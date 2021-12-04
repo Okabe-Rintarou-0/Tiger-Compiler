@@ -48,24 +48,24 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     TigerLog("-------====Linearlize=====-----\n");
     tree::StmList *stm_linearized = canon.Linearize();
     TigerLog(stm_linearized);
-    std::cout << "linearlize:" << std::endl;
-    for (auto stm : stm_linearized->GetList()) {
-      stm->Print(stdout, 0);
-      std::cout << std::endl;
-    }
+//    std::cout << "linearlize:" << std::endl;
+//    for (auto stm : stm_linearized->GetList()) {
+//      stm->Print(stdout, 0);
+//      std::cout << std::endl;
+//    }
 
     // Group list into basic blocks
     TigerLog("------====Basic block_=====-------\n");
     canon::StmListList *stm_lists = canon.BasicBlocks();
     TigerLog(stm_lists);
 
-    std::cout << "blocks:" << std::endl;
-    for (auto stmList : stm_lists->GetList()) {
-      std::cout << "stmList:" << std::endl;
-      for (auto stm : stmList->GetList())
-        stm->Print(stdout, 0);
-      std::cout << std::endl;
-    }
+//    std::cout << "blocks:" << std::endl;
+//    for (auto stmList : stm_lists->GetList()) {
+//      std::cout << "stmList:" << std::endl;
+//      for (auto stm : stmList->GetList())
+//        stm->Print(stdout, 0);
+//      std::cout << std::endl;
+//    }
 
     // Order basic blocks into traces_
     TigerLog("-------====Trace=====-----\n");
@@ -86,26 +86,25 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     TigerLog(assem_instr.get(), color);
   }
 
-  std::cout << "finish here" << std::endl;
 
   assem::InstrList *il = assem_instr.get()->GetInstrList();
 
-  // TigerLog("-------====Output assembly for %s=====-----\n",
-  //          frame_->name_->Name().data());
+  TigerLog("-------====Output assembly for %s=====-----\n",
+           frame_->func_->Name().data());
 
-  // assem::Proc *proc = frame::ProcEntryExit3(frame_, il);
+  assem::Proc *proc = frame::ProcEntryExit3(frame_, il);
 
-  // std::string proc_name = frame_->GetLabel();
+  std::string proc_name = frame_->func_->Name();
 
-  // fprintf(out, ".globl %s\n", proc_name.data());
-  // fprintf(out, ".type %s, @function\n", proc_name.data());
-  // // prologue
-  // fprintf(out, "%s", proc->prolog_.data());
-  // // body
-  // proc->body_->Print(out, color);
-  // // epilog_
-  // fprintf(out, "%s", proc->epilog_.data());
-  // fprintf(out, ".size %s, .-%s\n", proc_name.data(), proc_name.data());
+  fprintf(out, ".globl %s\n", proc_name.data());
+  fprintf(out, ".type %s, @function\n", proc_name.data());
+  // prologue
+  fprintf(out, "%s", proc->prolog_.data());
+  // body
+  proc->body_->Print(out, color);
+  // epilog_
+  fprintf(out, "%s", proc->epilog_.data());
+  fprintf(out, ".size %s, .-%s\n", proc_name.data(), proc_name.data());
 }
 
 void StringFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {

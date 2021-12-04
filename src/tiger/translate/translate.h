@@ -38,8 +38,12 @@ public:
   Level *parent_;
 
   static Level *Outermost() {
-    static auto outermost = new Level(
-        frame::NewFrame(temp::LabelFactory::NamedLabel("tigermain"), {}), nullptr);
+    static Level *outermost = nullptr;
+    if (outermost == nullptr) {
+      auto newFrame =
+          frame::NewFrame(temp::LabelFactory::NamedLabel("tigermain"), {});
+      outermost = new Level(newFrame, nullptr);
+    }
     return outermost;
   }
 

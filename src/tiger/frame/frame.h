@@ -77,11 +77,13 @@ public:
 
 class Frame {
   /* TODO: Put your lab5 code here */
-protected:
+public:
   temp::Label *func_;
   std::list<Access *> formals_;
 
 public:
+  virtual int frameSize() const = 0;
+
   inline void Append(Access *access) { formals_.push_back(access); }
 
   inline std::list<Access *> Formals() const { return formals_; }
@@ -144,7 +146,8 @@ private:
 };
 
 tree::Stm *ProcEntryExit1(frame::Frame *frame, tree::Stm *stm);
-
+void ProcEntryExit2(assem::InstrList &instr_list);
+assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body);
 /* TODO: Put your lab5 code here */
 Frame *NewFrame(temp::Label *fun, const std::list<bool> formals);
 } // namespace frame

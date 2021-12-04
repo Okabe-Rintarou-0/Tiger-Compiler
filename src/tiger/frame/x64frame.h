@@ -14,6 +14,7 @@ private:
   temp::TempList *argRegs;
   temp::TempList *callerSaves;
   temp::TempList *calleeSaves;
+  temp::TempList *returnSink;
 
 public:
   X64RegManager() {
@@ -66,6 +67,8 @@ public:
 
     // rbx, rbp, r12, r13, r14, r15
     calleeSaves = new temp::TempList({rbx, rbp, r12, r13, r14, r15});
+
+    returnSink = new temp::TempList({rbx, rbp, r12, r13, r14, r15, rsp, rax});
   }
   /* TODO: Put your lab5 code here */
   temp::TempList *Registers() override { return registers; }
@@ -95,7 +98,7 @@ public:
    * Get return-sink registers
    * @return return-sink registers
    */
-  temp::TempList *ReturnSink() override{};
+  temp::TempList *ReturnSink() override { return returnSink; };
 
   /**
    * Get word size
