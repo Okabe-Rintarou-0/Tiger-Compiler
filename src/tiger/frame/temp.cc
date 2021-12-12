@@ -36,6 +36,12 @@ Temp *TempFactory::NewTemp() {
   return p;
 }
 
+Temp *TempFactory::NewTemp(int id) {
+  Temp *p = new Temp(id);
+  return p;
+}
+
+
 int Temp::Int() const { return num_; }
 
 Map *Map::Empty() { return new Map(); }

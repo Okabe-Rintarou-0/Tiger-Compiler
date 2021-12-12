@@ -34,6 +34,7 @@ private:
 class TempFactory {
 public:
   static Temp *NewTemp();
+  static Temp *NewTemp(int id);
 
 private:
   int temp_id_ = 100;
