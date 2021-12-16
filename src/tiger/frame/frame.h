@@ -81,6 +81,8 @@ public:
   temp::Label *func_;
   std::list<Access *> formals_;
 
+  int localNumber = 0;
+
 public:
   virtual int frameSize() const = 0;
 

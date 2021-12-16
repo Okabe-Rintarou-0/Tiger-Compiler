@@ -2,8 +2,9 @@
 #define TIGER_FRAME_TEMP_H_
 
 #include "tiger/symbol/symbol.h"
-
+#include <iostream>
 #include <list>
+#include <set>
 
 namespace temp {
 
@@ -26,6 +27,8 @@ class Temp {
 public:
   [[nodiscard]] int Int() const;
 
+  inline bool isBuiltin() const { return num_ < 100; }
+
 private:
   int num_;
   explicit Temp(int num) : num_(num) {}
@@ -45,6 +48,7 @@ class Map {
 public:
   void Enter(Temp *t, std::string *s);
   std::string *Look(Temp *t);
+  void Set(Temp *t, std::string *s);
   void DumpMap(FILE *out);
 
   static Map *Empty();
@@ -65,9 +69,95 @@ public:
   explicit TempList(Temp *t) : temp_list_({t}) {}
   TempList(std::initializer_list<Temp *> list) : temp_list_(list) {}
   TempList() = default;
+
+  inline int Size() { return temp_list_.size(); }
+
+  inline bool Empty() { return temp_list_.size() == 0; }
+
   void Append(Temp *t) { temp_list_.push_back(t); }
   [[nodiscard]] Temp *NthTemp(int i) const;
   [[nodiscard]] const std::list<Temp *> &GetList() const { return temp_list_; }
+  void Union(TempList *another) {
+    auto anotherList = another->GetList();
+    for (auto anotherTemp : anotherList) {
+      auto pos = std::find(temp_list_.begin(), temp_list_.end(), anotherTemp);
+      if (pos == temp_list_.end()) {
+        temp_list_.push_back(anotherTemp);
+      }
+    }
+  }
+
+  void Diff(TempList *another) {
+    auto anotherList = another->GetList();
+    for (auto anotherTemp : anotherList) {
+      auto pos = std::find(temp_list_.begin(), temp_list_.end(), anotherTemp);
+      if (pos != temp_list_.end()) {
+        temp_list_.erase(pos);
+      }
+    }
+  }
+
+  void Assign(TempList *another) {
+    temp_list_.clear();
+    auto anotherList = another->GetList();
+    for (auto anotherTemp : anotherList) {
+      temp_list_.push_back(anotherTemp);
+    }
+  }
+
+  bool Contain(Temp *t) {
+    for (auto temp : temp_list_) {
+      if (temp == t)
+        return true;
+    }
+    return false;
+  }
+
+  void Replace(Temp *_old, Temp *_new) {
+    auto iter = temp_list_.begin();
+    for (; iter != temp_list_.end(); ++iter) {
+      if (*iter == _old) {
+        *iter = _new;
+      }
+    }
+  }
+
+  // use should free it manually.
+  static TempList *Diff(TempList *one, TempList *another) {
+    auto diff = new TempList({});
+    auto oneList = one->GetList();
+    auto anotherList = another->GetList();
+    for (auto oneTemp : oneList) {
+      bool exist = false;
+      for (auto anotherTemp : anotherList) {
+        if (anotherTemp == oneTemp) {
+          exist = true;
+          break;
+        }
+      }
+      if (!exist) {
+        diff->Append(oneTemp);
+      }
+    }
+    return diff;
+  }
+
+  static TempList *Union(TempList *one, TempList *another) {
+    auto diff = new TempList({});
+    auto oneList = one->GetList();
+    auto anotherList = another->GetList();
+    TempList *ret = new temp::TempList({});
+    for (auto oneTemp : oneList)
+      ret->Append(oneTemp);
+
+    for (auto anotherTemp : anotherList) {
+      auto pos = std::find(oneList.begin(), oneList.end(), anotherTemp);
+      if (pos == oneList.end()) {
+        ret->Append(anotherTemp);
+      }
+    }
+    return ret;
+  }
 
 private:
   std::list<Temp *> temp_list_;

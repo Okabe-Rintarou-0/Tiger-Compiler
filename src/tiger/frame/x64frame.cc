@@ -33,7 +33,6 @@ public:
 class X64Frame : public Frame {
   /* TODO: Put you
    * r lab5 code here */
-  int localNumber = 0;
 
 public:
   Access *AllocLocal(bool escape) override;
@@ -77,9 +76,9 @@ Frame *NewFrame(temp::Label *fun, const std::list<bool> formals) {
 assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body) {
   char buf[256];
   std::string prolog;
-  //  sprintf(buf, ".set %s_framesize, %d\n", frame->func_->Name().c_str(),
-  //          frame->frameSize());
-  //  prolog = std::string(buf);
+    sprintf(buf, ".set %s_framesize, %d\n", frame->func_->Name().c_str(),
+            frame->frameSize());
+    prolog = std::string(buf);
   sprintf(buf, "%s:\n", frame->func_->Name().c_str());
   prolog.append(std::string(buf));
   sprintf(buf, "subq $%d, %%rsp\n", frame->frameSize());

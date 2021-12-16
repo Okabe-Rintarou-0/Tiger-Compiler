@@ -48,24 +48,24 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     TigerLog("-------====Linearlize=====-----\n");
     tree::StmList *stm_linearized = canon.Linearize();
     TigerLog(stm_linearized);
-//    std::cout << "linearlize:" << std::endl;
-//    for (auto stm : stm_linearized->GetList()) {
-//      stm->Print(stdout, 0);
-//      std::cout << std::endl;
-//    }
+    //    std::cout << "linearlize:" << std::endl;
+    //    for (auto stm : stm_linearized->GetList()) {
+    //      stm->Print(stdout, 0);
+    //      std::cout << std::endl;
+    //    }
 
     // Group list into basic blocks
     TigerLog("------====Basic block_=====-------\n");
     canon::StmListList *stm_lists = canon.BasicBlocks();
     TigerLog(stm_lists);
 
-//    std::cout << "blocks:" << std::endl;
-//    for (auto stmList : stm_lists->GetList()) {
-//      std::cout << "stmList:" << std::endl;
-//      for (auto stm : stmList->GetList())
-//        stm->Print(stdout, 0);
-//      std::cout << std::endl;
-//    }
+    //    std::cout << "blocks:" << std::endl;
+    //    for (auto stmList : stm_lists->GetList()) {
+    //      std::cout << "stmList:" << std::endl;
+    //      for (auto stm : stmList->GetList())
+    //        stm->Print(stdout, 0);
+    //      std::cout << std::endl;
+    //    }
 
     // Order basic blocks into traces_
     TigerLog("-------====Trace=====-----\n");
@@ -75,8 +75,8 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     traces = canon.TransferTraces();
   }
 
-  temp::Map *color =
-      temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
+  temp::Map *color = temp::Map::Name();
+  //      temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
   {
     // Lab 5: code generation
     TigerLog("-------====Code generate=====-----\n");
@@ -86,17 +86,17 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     TigerLog(assem_instr.get(), color);
   }
 
-
   assem::InstrList *il = assem_instr.get()->GetInstrList();
-  
+
   if (need_ra) {
     // Lab 6: register allocation
-//    TigerLog("----====Register allocate====-----\n");
-//    ra::RegAllocator reg_allocator(frame_, std::move(assem_instr));
-//    reg_allocator.RegAlloc();
-//    allocation = reg_allocator.TransferResult();
-//    il = allocation->il_;
-//    color = temp::Map::LayerMap(reg_manager->temp_map_, allocation->coloring_);
+    TigerLog("----====Register allocate====-----\n");
+    ra::RegAllocator reg_allocator(frame_, std::move(assem_instr));
+    reg_allocator.RegAlloc();
+    allocation = reg_allocator.TransferResult();
+    il = allocation->il_;
+    //        color = temp::Map::LayerMap(reg_manager->temp_map_,
+    //        allocation->coloring_);
   }
 
   TigerLog("-------====Output assembly for %s=====-----\n",

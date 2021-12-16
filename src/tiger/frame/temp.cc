@@ -65,6 +65,10 @@ void Map::Enter(Temp *t, std::string *s) {
   tab_->Enter(t, s);
 }
 
+void Map::Set(Temp *t, std::string *s){
+  tab_->Set(t, s);
+}
+
 std::string *Map::Look(Temp *t) {
   std::string *s;
   assert(tab_);

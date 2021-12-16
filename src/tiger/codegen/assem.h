@@ -12,14 +12,15 @@ namespace assem {
 class Targets {
 public:
   std::vector<temp::Label *> *labels_;
-
   explicit Targets(std::vector<temp::Label *> *labels) : labels_(labels) {}
 };
 
 class Instr {
 public:
   virtual ~Instr() = default;
-
+  Instr() = default;
+  Instr(const std::string &assem_) : assem_(assem_) {}
+  std::string assem_;
   virtual void Print(FILE *out, temp::Map *m) const = 0;
   [[nodiscard]] virtual temp::TempList *Def() const = 0;
   [[nodiscard]] virtual temp::TempList *Use() const = 0;
@@ -27,13 +28,12 @@ public:
 
 class OperInstr : public Instr {
 public:
-  std::string assem_;
   temp::TempList *dst_, *src_;
   Targets *jumps_;
 
   OperInstr(std::string assem, temp::TempList *dst, temp::TempList *src,
             Targets *jumps)
-      : assem_(std::move(assem)), dst_(dst), src_(src), jumps_(jumps) {}
+      : Instr(std::move(assem)), dst_(dst), src_(src), jumps_(jumps) {}
 
   void Print(FILE *out, temp::Map *m) const override;
   [[nodiscard]] temp::TempList *Def() const override;
@@ -42,11 +42,10 @@ public:
 
 class LabelInstr : public Instr {
 public:
-  std::string assem_;
   temp::Label *label_;
 
   LabelInstr(std::string assem, temp::Label *label)
-      : assem_(std::move(assem)), label_(label) {}
+      : Instr(std::move(assem)), label_(label) {}
 
   void Print(FILE *out, temp::Map *m) const override;
   [[nodiscard]] temp::TempList *Def() const override;
@@ -55,11 +54,10 @@ public:
 
 class MoveInstr : public Instr {
 public:
-  std::string assem_;
   temp::TempList *dst_, *src_;
 
   MoveInstr(std::string assem, temp::TempList *dst, temp::TempList *src)
-      : assem_(std::move(assem)), dst_(dst), src_(src) {}
+      : Instr(std::move(assem)), dst_(dst), src_(src) {}
 
   void Print(FILE *out, temp::Map *m) const override;
   [[nodiscard]] temp::TempList *Def() const override;
@@ -76,9 +74,7 @@ public:
   void Insert(std::list<Instr *>::const_iterator pos, assem::Instr *instr) {
     instr_list_.insert(pos, instr);
   }
-  [[nodiscard]] const std::list<Instr *> &GetList() const {
-    return instr_list_;
-  }
+  [[nodiscard]] std::list<Instr *> &GetList() { return instr_list_; }
 
 private:
   std::list<Instr *> instr_list_;

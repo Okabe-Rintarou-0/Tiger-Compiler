@@ -23,6 +23,8 @@ public:
   // to the same graph
   void AddEdge(Node<T> *from, Node<T> *to);
 
+  void DeleteNode(Node<T> *n);
+
   // Show all the nodes and edges in the graph, using the function "show_info"
   // to print the name of each node
   static void Show(FILE *out, NodeList<T> *p,
@@ -105,6 +107,12 @@ public:
   void Clear() { node_list_.clear(); }
   void Prepend(Node<T> *n) { node_list_.push_front(n); }
   void Append(Node<T> *n) { node_list_.push_back(n); }
+  inline bool Empty() { return node_list_.empty(); }
+  Node<T> *PopFront() {
+    auto frt = node_list_.front();
+    node_list_.pop_front();
+    return frt;
+  }
 
   // Set operation on two lists
   NodeList<T> *Union(NodeList<T> *nl);
@@ -255,6 +263,15 @@ void Graph<T>::Show(FILE *out, NodeList<T> *p,
       fprintf(out, "%d ", q->Key());
     fprintf(out, "\n");
   }
+}
+template <typename T> void Graph<T>::DeleteNode(Node<T> *n) {
+  for (auto succNode : n->succs_->node_list_) {
+    succNode->preds_->DeleteNode(n);
+  }
+  for (auto predNode : n->preds_->node_list_) {
+    predNode->succs_->DeleteNode(n);
+  }
+  my_nodes_->DeleteNode(n);
 }
 
 } // namespace graph

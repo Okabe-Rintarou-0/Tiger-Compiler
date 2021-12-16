@@ -12,7 +12,7 @@ constexpr int maxlen = 1024;
 
 } // namespace
 
-static int framesize;
+static char framesize[255];
 
 namespace cg {
 
@@ -20,7 +20,7 @@ void CodeGen::Codegen() { /* TODO: Put your lab5 code here */
   auto stmList = traces_->GetStmList()->GetList();
   auto *instr_list = new assem::InstrList;
   std::string_view fs;
-  framesize = frame_->frameSize();
+  sprintf(framesize, "%s_framesize", frame_->func_->Name().c_str());
   for (auto stm : stmList) {
     stm->Munch(*instr_list, fs);
   }
@@ -68,9 +68,9 @@ void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
   auto leftTemp = left_->Munch(instr_list, fs);
   auto rightTemp = right_->Munch(instr_list, fs);
-  auto cmpInstr = new assem::OperInstr(
-      "cmp `d0, `d1", new temp::TempList({rightTemp, leftTemp}), nullptr,
-      nullptr);
+  auto cmpInstr =
+      new assem::OperInstr("cmp `s0, `s1", nullptr,
+                           new temp::TempList({rightTemp, leftTemp}), nullptr);
 
   assem::Instr *cjumpStr = nullptr;
   std::string assem;
@@ -231,7 +231,7 @@ temp::Temp *TempExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     return temp_;
   auto r = temp::TempFactory::NewTemp();
   char assem[100];
-  sprintf(assem, "leaq %d(`s0), `d0 ", framesize);
+  sprintf(assem, "leaq %s(`s0), `d0 ", framesize);
   instr_list.Append(new assem::OperInstr(
       assem, new temp::TempList({r}),
       new temp::TempList({reg_manager->StackPointer()}), nullptr));
@@ -279,6 +279,8 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   instr_list.Append(
       new assem::MoveInstr("movq `s0, `d0", new temp::TempList({r}),
                            new temp::TempList({reg_manager->ReturnValue()})));
+
+  // add back the spill offsets
   if (spillNumber > 0) {
     char assem[100];
     sprintf(assem, "addq $%d, `d0", spillNumber * reg_manager->WordSize());

@@ -215,7 +215,7 @@ test_lab5() {
 
 test_lab6() {
   local score_str="LAB6 SCORE"
-  local testcase_dir=${WORKDIR}/testdata/lab5or6/testcases
+  local testcase_dir=${WORKDIR}/testdata/lab5or6/single
   local ref_dir=${WORKDIR}/testdata/lab5or6/refs
   local mergecase_dir=$testcase_dir/merge
   local mergeref_dir=$ref_dir/merge
