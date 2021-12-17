@@ -178,16 +178,16 @@ void RegAllocator::AssignColors() {
     } else {
       coloredNodes->Append(n);
       int c = *okColors.begin();
-      std::cout << "set " << *temp::Map::Name()->Look(n->NodeInfo())
-                << "'s color to: " << c << std::endl;
+//      std::cout << "set " << *temp::Map::Name()->Look(n->NodeInfo())
+//                << "'s color to: " << c << std::endl;
       colors[n->NodeInfo()] = c;
     }
   }
   //  std::cout << "HERE" << std::endl;
   for (auto n : coalescedNodes->GetList()) {
-    std::cout << "set " << *temp::Map::Name()->Look(n->NodeInfo()) << " "
-              << "'s color to: " << colors[GetAlias(n)->NodeInfo()]
-              << std::endl;
+//    std::cout << "set " << *temp::Map::Name()->Look(n->NodeInfo()) << " "
+//              << "'s color to: " << colors[GetAlias(n)->NodeInfo()]
+//              << std::endl;
     colors[n->NodeInfo()] = colors[GetAlias(n)->NodeInfo()];
   }
 }
@@ -445,8 +445,6 @@ void RegAllocator::RewriteProgram() {
             buf, new temp::TempList({newTemp}),
             new temp::TempList({reg_manager->StackPointer()}), nullptr);
         iter = instrList.insert(iter, newInstr);
-        std::cout << "now: ";
-        (*iter)->Print(stdout, temp::Map::Name());
         ++iter;
       }
 
@@ -458,8 +456,6 @@ void RegAllocator::RewriteProgram() {
             buf, new temp::TempList({reg_manager->StackPointer()}),
             new temp::TempList({newTemp}), nullptr);
         iter = instrList.insert(std::next(iter), newInstr);
-        std::cout << "now: ";
-        (*iter)->Print(stdout, temp::Map::Name());
       }
     }
   }
@@ -497,8 +493,6 @@ bool RegAllocator::MeaninglessMove(temp::TempList *src, temp::TempList *dst) {
 }
 
 void RegAllocator::AssignRegisters() {
-  std::cout << "assign regs\n";
-  LOG("assign regs\n");
   auto il = assemInstr.get()->GetInstrList();
   //  /// TODO: something wrong with it.
   auto &instrList = il->GetList();
@@ -518,8 +512,6 @@ void RegAllocator::AssignRegisters() {
         AssignTemps(src);
         AssignTemps(dst);
       } else {
-        std::cout << "Meaningless: ";
-        instr->Print(stdout, temp::Map::Name());
         iter = instrList.erase(iter);
         continue;
       }
