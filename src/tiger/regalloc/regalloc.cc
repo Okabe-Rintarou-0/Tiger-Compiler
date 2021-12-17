@@ -158,8 +158,12 @@ void RegAllocator::AssignColors() {
     }
 
     std::set<int> okColors;
-    for (int i = 0; i < K; ++i)
-      okColors.insert(i);
+    auto rsp = reg_manager->StackPointer()->Int();
+    auto rbp = rsp + 1;
+    for (int i = 0; i <= K; ++i) {
+      if (i != rsp && i != rbp)
+        okColors.insert(i);
+    }
 
     for (auto w : n->Succ()->GetList()) {
       auto wAlias = GetAlias(w);
@@ -174,20 +178,16 @@ void RegAllocator::AssignColors() {
     } else {
       coloredNodes->Append(n);
       int c = *okColors.begin();
-      //      std::cout << "set " << *temp::Map::Name()->Look(n->NodeInfo())
-      //                << "'s color to: " << std::endl;
+      std::cout << "set " << *temp::Map::Name()->Look(n->NodeInfo())
+                << "'s color to: " << c << std::endl;
       colors[n->NodeInfo()] = c;
     }
   }
   //  std::cout << "HERE" << std::endl;
   for (auto n : coalescedNodes->GetList()) {
-    //    std::cout
-    //        << "set " << *temp::Map::Name()->Look(n->NodeInfo()) << " "
-    //        << GetAlias(n) << " while "
-    //        << alias[n]
-    //        //              << "'s color to: " <<
-    //        colors[GetAlias(n)->NodeInfo()]
-    //        << std::endl;
+    std::cout << "set " << *temp::Map::Name()->Look(n->NodeInfo()) << " "
+              << "'s color to: " << colors[GetAlias(n)->NodeInfo()]
+              << std::endl;
     colors[n->NodeInfo()] = colors[GetAlias(n)->NodeInfo()];
   }
 }
@@ -405,7 +405,7 @@ void RegAllocator::LivenessAnalysis() {
 }
 
 void RegAllocator::RewriteProgram() {
-  std::cout << "rewriting prog\n";
+  //  std::cout << "rewriting prog\n";
   //  LOG("rewriting prog\n");
   graph::NodeList<temp::Temp> *newTemps = new graph::NodeList<temp::Temp>;
   alreadySpilled->Clear();
@@ -416,18 +416,17 @@ void RegAllocator::RewriteProgram() {
     auto newTemp = temp::TempFactory::NewTemp(); // namely vi
     alreadySpilled->Append(newTemp);
     auto oldTemp = v->NodeInfo();
-    std::cout << "For spilled temp: " << *temp::Map::Name()->Look(oldTemp)
-              << std::endl
-              << "We create a new temp: " << *temp::Map::Name()->Look(newTemp)
-              << std::endl;
+    //    std::cout << "For spilled temp: " << *temp::Map::Name()->Look(oldTemp)
+    //              << std::endl
+    //              << "We create a new temp: " <<
+    //              *temp::Map::Name()->Look(newTemp)
+    //              << std::endl;
     ++frame->localNumber;
     temp::TempList *src = nullptr, *dst = nullptr;
     auto &instrList = il->GetList();
     auto iter = instrList.begin();
     for (; iter != instrList.end(); ++iter) {
       auto instr = *iter;
-      std::cout << "For instr: ";
-      instr->Print(stdout, temp::Map::Name());
       if (typeid(*instr) == typeid(assem::MoveInstr)) {
         auto moveInstr = dynamic_cast<assem::MoveInstr *>(instr);
         src = moveInstr->src_;
@@ -440,7 +439,7 @@ void RegAllocator::RewriteProgram() {
 
       if (src && src->Contain(oldTemp)) {
         src->Replace(oldTemp, newTemp);
-        sprintf(buf, "# Ops!Spilled before\nmovq (%s_framesize-%d)(`s0), `d0",
+        sprintf(buf, "movq (%s_framesize-%d)(`s0), `d0",
                 frame->func_->Name().c_str(), frame->localNumber * wordSize);
         auto newInstr = new assem::OperInstr(
             buf, new temp::TempList({newTemp}),
@@ -453,7 +452,7 @@ void RegAllocator::RewriteProgram() {
 
       if (dst && dst->Contain(oldTemp)) {
         dst->Replace(oldTemp, newTemp);
-        sprintf(buf, "# Ops!Spilled after\nmovq `s0, (%s_framesize-%d)(`d0)",
+        sprintf(buf, "movq `s0, (%s_framesize-%d)(`d0)",
                 frame->func_->Name().c_str(), frame->localNumber * wordSize);
         auto newInstr = new assem::OperInstr(
             buf, new temp::TempList({reg_manager->StackPointer()}),

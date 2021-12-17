@@ -202,7 +202,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
                                            new temp::TempList({rax}),
                                            new temp::TempList({left})));
     instr_list.Append(new assem::OperInstr(
-        "idivq `s0", nullptr, new temp::TempList({right}), nullptr));
+        "cqto\nidivq `s0", nullptr, new temp::TempList({right}), nullptr));
     instr_list.Append(new assem::MoveInstr(
         "movq `s0, `d0", new temp::TempList({r}), new temp::TempList({rax})));
     instr_list.Append(new assem::MoveInstr(
@@ -276,8 +276,9 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   auto funLabel = dynamic_cast<tree::NameExp *>(fun_)->name_->Name();
   auto tempList = args_->MunchArgs(instr_list, fs);
   int spillNumber = args_->GetList().size() - 6;
-  instr_list.Append(
-      new assem::OperInstr("callq " + funLabel, nullptr, nullptr, nullptr));
+  instr_list.Append(new assem::OperInstr("callq " + funLabel,
+                                         reg_manager->CallerSaves(),
+                                         reg_manager->ArgRegs(), nullptr));
   instr_list.Append(
       new assem::MoveInstr("movq `s0, `d0", new temp::TempList({r}),
                            new temp::TempList({reg_manager->ReturnValue()})));
@@ -331,8 +332,9 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
     for (; exp_rit != exp_it; --exp_rit) {
       auto argExp = *exp_rit;
       auto argR = argExp->Munch(instr_list, fs);
-      instr_list.Append(new assem::MoveInstr(
-          "subq `s0, `d0", new temp::TempList({rsp}), new temp::TempList({r})));
+      instr_list.Append(new assem::OperInstr("subq `s0, `d0",
+                                             new temp::TempList({rsp}),
+                                             new temp::TempList({r}), nullptr));
       instr_list.Append(new assem::OperInstr("movq `s0, (`s1)", nullptr,
                                              new temp::TempList({argR, rsp}),
                                              nullptr));

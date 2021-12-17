@@ -215,7 +215,7 @@ test_lab5() {
 
 test_lab6() {
   local score_str="LAB6 SCORE"
-  local testcase_dir=${WORKDIR}/testdata/lab5or6/single
+  local testcase_dir=${WORKDIR}/testdata/lab5or6/testcases
   local ref_dir=${WORKDIR}/testdata/lab5or6/refs
   local mergecase_dir=$testcase_dir/merge
   local mergeref_dir=$ref_dir/merge
@@ -232,7 +232,7 @@ test_lab6() {
     local assem=$testcase.s
 
     ./tiger-compiler "$testcase" &>/dev/null
-    gcc -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" -o test.out &>/dev/null
+    gcc -g -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" -o test.out &>/dev/null
     if [ ! -s test.out ]; then
       echo "Error: Link error [$testcase_name]"
       full_score=0
