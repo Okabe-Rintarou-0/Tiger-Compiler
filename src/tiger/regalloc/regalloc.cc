@@ -26,10 +26,11 @@ void RegAllocator::RegAlloc() {
 }
 
 void RegAllocator::Color() {
-  bool done = true;
+  bool done;
   int x = 0;
   std::cout << "Called" << std::endl;
   do {
+    done = true;
     LivenessAnalysis();
     Build();
     MakeWorkList();
@@ -57,7 +58,7 @@ void RegAllocator::Color() {
     ++x;
     std::cout << "Finished " << x << std::endl;
     //  } while (0);
-  } while (x < 1);
+  } while (!done);
 
   std::cout << "Finished All\n\n";
 }
@@ -67,17 +68,17 @@ void RegAllocator::Build() {
   precolored->Clear();
   alias.clear();
   colors.clear();
+  degree.clear();
   auto &nodes = interf_graph->Nodes()->GetList();
   for (auto node : nodes) {
     //    std::cout << "initing... " << node << ", "
     //              << *(temp::Map::Name()->Look(node->NodeInfo())) <<
     //              std::endl;
-    if (initial->Contain(node) || precolored->Contain(node))
-      continue;
+    degree[node] = node->OutDegree();
     alias[node] = node;
-    std::cout << node << " "
-              << "alias[" << *temp::Map::Name()->Look(node->NodeInfo())
-              << "] = " << node << std::endl;
+    //    std::cout << node << " "
+    //              << "alias[" << *temp::Map::Name()->Look(node->NodeInfo())
+    //              << "] = " << node << std::endl;
     auto temp = node->NodeInfo();
     if (!temp->isBuiltin()) {
       initial->Append(node);
@@ -100,8 +101,17 @@ live::MoveList *RegAllocator::NodeMoves(live::INodePtr node) {
   return moveList_n->Intersect(activeMoves->Union(workListMoves));
 }
 
-void AddEdge(live::INodePtr u, live::INodePtr v){
-
+void RegAllocator::AddEdge(live::INodePtr u, live::INodePtr v) {
+  if (!u->Succ()->Contain(v) && u != v) {
+    if (!precolored->Contain(u)) {
+      interf_graph->AddEdge(u, v);
+      degree[u]++;
+    }
+    if (!precolored->Contain(v)) {
+      interf_graph->AddEdge(v, u);
+      degree[v]++;
+    }
+  }
 }
 
 bool RegAllocator::MoveRelated(live::INodePtr node) {
@@ -118,24 +128,19 @@ void RegAllocator::Combine(live::INodePtr u, live::INodePtr v) {
   // alias[v] = u;
   // now u will stand for v, and there will be nothing to do with v;
   alias[v] = u;
-  std::cout << v << " "
-            << "alias[" << *temp::Map::Name()->Look(v->NodeInfo())
-            << "] = " << u << std::endl;
+  //  std::cout << v << " "
+  //            << "alias[" << *temp::Map::Name()->Look(v->NodeInfo())
+  //            << "] = " << u << std::endl;
   // moveList[u] = moveList[u] U moveList[v]
   moveList->Set(u, moveList->Look(u)->Union(moveList->Look(v)));
-  auto singleton = new graph::NodeList<temp::Temp>;
-  singleton->Append(v);
-  EnableMoves(singleton);
+  EnableMoves(new graph::NodeList<temp::Temp>({v}));
 
-  for (auto t : v->Adj()->GetList()) {
-    interf_graph->AddEdge(t, u);
-    interf_graph->AddEdge(u, t);
-    t->Succ()->DeleteNode(v);
-    t->Pred()->DeleteNode(v);
-    CheckDegree(t);
+  for (auto t : v->Succ()->GetList()) {
+    AddEdge(t, u);
+    DecrementDegree(t);
   }
 
-  if (u->Degree() >= K && freezeWorkList->Contain(u)) {
+  if (degree[u] >= K && freezeWorkList->Contain(u)) {
     freezeWorkList->DeleteNode(u);
     spillWorkList->Append(u);
   }
@@ -156,11 +161,10 @@ void RegAllocator::AssignColors() {
     for (int i = 0; i < K; ++i)
       okColors.insert(i);
 
-    for (auto w : n->Adj()->GetList()) {
+    for (auto w : n->Succ()->GetList()) {
       auto wAlias = GetAlias(w);
 
-      auto allColored = coloredNodes->Union(precolored);
-      if (allColored->Contain(wAlias)) {
+      if (colors.find(wAlias->NodeInfo()) != colors.end()) {
         okColors.erase(colors[wAlias->NodeInfo()]);
       }
     }
@@ -170,19 +174,20 @@ void RegAllocator::AssignColors() {
     } else {
       coloredNodes->Append(n);
       int c = *okColors.begin();
-      std::cout << "set " << *temp::Map::Name()->Look(n->NodeInfo())
-                << "'s color to: " << std::endl;
+      //      std::cout << "set " << *temp::Map::Name()->Look(n->NodeInfo())
+      //                << "'s color to: " << std::endl;
       colors[n->NodeInfo()] = c;
     }
   }
-  std::cout << "HERE" << std::endl;
+  //  std::cout << "HERE" << std::endl;
   for (auto n : coalescedNodes->GetList()) {
-    std::cout
-        << "set " << *temp::Map::Name()->Look(n->NodeInfo()) << " "
-        << GetAlias(n) << " while "
-        << alias[n]
-        //              << "'s color to: " << colors[GetAlias(n)->NodeInfo()]
-        << std::endl;
+    //    std::cout
+    //        << "set " << *temp::Map::Name()->Look(n->NodeInfo()) << " "
+    //        << GetAlias(n) << " while "
+    //        << alias[n]
+    //        //              << "'s color to: " <<
+    //        colors[GetAlias(n)->NodeInfo()]
+    //        << std::endl;
     colors[n->NodeInfo()] = colors[GetAlias(n)->NodeInfo()];
   }
 }
@@ -199,7 +204,7 @@ void RegAllocator::FreezeMoves(live::INodePtr u) {
     }
     activeMoves->Delete(x, y);
     frozenMoves->Append(x, y);
-    if (NodeMoves(v)->Empty() && v->Degree() < K) {
+    if (NodeMoves(v)->Empty() && degree[v] < K) {
       freezeWorkList->DeleteNode(v);
       //      std::cout << "FreezeMoves add node: ";
       //      printTempNode(v);
@@ -221,18 +226,19 @@ void RegAllocator::Freeze() {
 void RegAllocator::MakeWorkList() {
   //  std::cout << "Making worklist..." << std::endl;
   auto &nodes = initial->GetList();
-  for (auto node : nodes) {
-    if (node->Degree() >= K) {
-      spillWorkList->Append(node);
-    } else if (MoveRelated(node)) {
-      freezeWorkList->Append(node);
+  for (auto n : nodes) {
+    if (degree[n] >= K) {
+      spillWorkList->Append(n);
+    } else if (MoveRelated(n)) {
+      freezeWorkList->Append(n);
     } else {
       //      std::cout << "makeworklist add node: ";
       //      printTempNode(node);
       //      std::cout << std::endl;
-      simplifyWorkList->Append(node);
+      simplifyWorkList->Append(n);
     }
   }
+  initial->Clear();
 }
 
 void RegAllocator::Simplify() {
@@ -247,28 +253,26 @@ void RegAllocator::Simplify() {
 
   interf_graph->DeleteNode(node);
 
-  for (auto adj : node->Adj()->GetList()) {
-    CheckDegree(adj);
+  for (auto adj : node->Succ()->GetList()) {
+    DecrementDegree(adj);
   }
 }
 
-void RegAllocator::CheckDegree(live::INodePtr node) {
+void RegAllocator::DecrementDegree(live::INodePtr m) {
   //  std::cout << "Checking node ";
   //  printTempNode(node);
   //  std::cout << std::endl;
-  int degree = node->Degree();
-  if (degree == K - 1) {
-    auto singleton = new graph::NodeList<temp::Temp>;
-    singleton->Append(node); // namely {m}
-    EnableMoves(node->Adj()->Union(singleton));
-    spillWorkList->DeleteNode(node);
-    if (MoveRelated(node)) {
-      freezeWorkList->Append(node);
+  --degree[m];
+  if (degree[m] == K - 1 && !precolored->Contain(m)) {
+    EnableMoves(m->Succ()->Union(new graph::NodeList<temp::Temp>({m})));
+    spillWorkList->DeleteNode(m);
+    if (MoveRelated(m)) {
+      freezeWorkList->Append(m);
     } else {
       //      std::cout << "check degree add node: ";
       //      printTempNode(node);
       //      std::cout << std::endl;
-      simplifyWorkList->Append(node);
+      simplifyWorkList->Append(m);
     }
   }
 }
@@ -277,8 +281,12 @@ void RegAllocator::EnableMoves(graph::NodeList<temp::Temp> *nodes) {
   for (auto n : nodes->GetList()) {
     auto nodeMvs = NodeMoves(n);
     for (auto m : nodeMvs->GetList()) {
-      activeMoves->Delete(m.first, m.second);
-      workListMoves->Append(m.first, m.second);
+      auto src = m.first;
+      auto dst = m.second;
+      if (activeMoves->Contain(src, dst)) {
+        activeMoves->Delete(src, dst);
+        workListMoves->Append(src, dst);
+      }
     }
   }
 }
@@ -289,7 +297,7 @@ live::INodePtr RegAllocator::GetAlias(live::INodePtr node) {
 }
 
 void RegAllocator::AddWorkList(live::INodePtr node) {
-  if (!precolored->Contain(node) && !MoveRelated(node) && node->Degree() < K) {
+  if (!precolored->Contain(node) && !MoveRelated(node) && degree[node] < K) {
     freezeWorkList->DeleteNode(node);
     simplifyWorkList->Append(node);
     //    std::cout << "AddWorkList add node: ";
@@ -299,11 +307,11 @@ void RegAllocator::AddWorkList(live::INodePtr node) {
 }
 
 bool RegAllocator::OK(live::INodePtr t, live::INodePtr r) {
-  return t->Degree() < K || precolored->Contain(t) || t->Adj()->Contain(r);
+  return degree[t] < K || precolored->Contain(t) || r->Succ()->Contain(t);
 }
 
 bool RegAllocator::CoalesceOK(live::INodePtr u, live::INodePtr v) {
-  for (auto t : v->Adj()->GetList()) {
+  for (auto t : v->Succ()->GetList()) {
     if (!OK(t, u))
       return false;
   }
@@ -313,14 +321,29 @@ bool RegAllocator::CoalesceOK(live::INodePtr u, live::INodePtr v) {
 bool RegAllocator::Conservative(graph::NodeList<temp::Temp> *nodes) {
   int k = 0;
   for (auto n : nodes->GetList()) {
-    if (n->Degree() >= k)
+    if (degree[n] >= k)
       ++k;
   }
   return k < K;
 }
 
 void RegAllocator::SelectSpill() {
-  auto m = spillWorkList->PopFront();
+  live::INodePtr m = nullptr;
+  int maxDegree = 0;
+  for (auto n : spillWorkList->GetList()) {
+    if (alreadySpilled->Contain(n->NodeInfo())) {
+      continue;
+    }
+    if (degree[n] > maxDegree) {
+      m = n;
+      maxDegree = degree[n];
+    }
+  }
+  if (m)
+    spillWorkList->DeleteNode(m);
+  else
+    m = spillWorkList->PopFront();
+  //  auto m = spillWorkList->PopFront();
   //  std::cout << "selectspill add node: ";
   //  printTempNode(m);
   //  std::cout << std::endl;
@@ -330,8 +353,8 @@ void RegAllocator::SelectSpill() {
 
 void RegAllocator::Coalesce() {
   auto m = workListMoves->PopFront();
-  auto x = m.first;
-  auto y = m.second;
+  auto x = GetAlias(m.first);
+  auto y = GetAlias(m.second);
   //  std::cout << "Try to coalesce: ";
   //  printTempNode(x);
   //  std::cout << ", ";
@@ -353,13 +376,13 @@ void RegAllocator::Coalesce() {
   if (u == v) {
     coalescedMoves->Append(x, y);
     AddWorkList(u);
-  } else if (precolored->Contain(v) || u->Adj()->Contain(v)) {
+  } else if (precolored->Contain(v) || v->Succ()->Contain(u)) {
     constrainedMoves->Append(x, y);
     AddWorkList(u);
     AddWorkList(v);
   } else if ((precolored->Contain(u) && CoalesceOK(u, v)) ||
              (!precolored->Contain(u)) &&
-                 Conservative(u->Adj()->Union(v->Adj()))) {
+                 Conservative(u->Succ()->Union(v->Succ()))) {
     coalescedMoves->Append(x, y);
     Combine(u, v);
     AddWorkList(u);
@@ -385,12 +408,13 @@ void RegAllocator::RewriteProgram() {
   std::cout << "rewriting prog\n";
   //  LOG("rewriting prog\n");
   graph::NodeList<temp::Temp> *newTemps = new graph::NodeList<temp::Temp>;
-
+  alreadySpilled->Clear();
   auto il = assemInstr->GetInstrList();
   char buf[256];
   const int wordSize = reg_manager->WordSize();
   for (auto v : spilledNodes->GetList()) {
     auto newTemp = temp::TempFactory::NewTemp(); // namely vi
+    alreadySpilled->Append(newTemp);
     auto oldTemp = v->NodeInfo();
     std::cout << "For spilled temp: " << *temp::Map::Name()->Look(oldTemp)
               << std::endl
@@ -422,6 +446,8 @@ void RegAllocator::RewriteProgram() {
             buf, new temp::TempList({newTemp}),
             new temp::TempList({reg_manager->StackPointer()}), nullptr);
         iter = instrList.insert(iter, newInstr);
+        std::cout << "now: ";
+        (*iter)->Print(stdout, temp::Map::Name());
         ++iter;
       }
 
@@ -433,6 +459,8 @@ void RegAllocator::RewriteProgram() {
             buf, new temp::TempList({reg_manager->StackPointer()}),
             new temp::TempList({newTemp}), nullptr);
         iter = instrList.insert(std::next(iter), newInstr);
+        std::cout << "now: ";
+        (*iter)->Print(stdout, temp::Map::Name());
       }
     }
   }
@@ -470,11 +498,11 @@ bool RegAllocator::MeaninglessMove(temp::TempList *src, temp::TempList *dst) {
 }
 
 void RegAllocator::AssignRegisters() {
-  //  std::cout << "assign regs\n";
-  //  LOG("assign regs\n");
+  std::cout << "assign regs\n";
+  LOG("assign regs\n");
   auto il = assemInstr.get()->GetInstrList();
-  /// TODO: something wrong with it.
-  auto instrList = il->GetList();
+  //  /// TODO: something wrong with it.
+  auto &instrList = il->GetList();
   auto iter = instrList.begin();
   char framesize_buf[256];
   sprintf(framesize_buf, "%s_framesize", frame->func_->Name().c_str());
@@ -487,17 +515,15 @@ void RegAllocator::AssignRegisters() {
       auto moveInstr = dynamic_cast<assem::MoveInstr *>(instr);
       auto src = moveInstr->src_;
       auto dst = moveInstr->dst_;
-      if (MeaninglessMove(src, dst)) {
+      if (!MeaninglessMove(src, dst)) {
+        AssignTemps(src);
+        AssignTemps(dst);
+      } else {
         std::cout << "Meaningless: ";
         instr->Print(stdout, temp::Map::Name());
+        iter = instrList.erase(iter);
+        continue;
       }
-      //      if (!MeaninglessMove(src, dst)) {
-      AssignTemps(src);
-      AssignTemps(dst);
-      //      } else {
-      //        iter = instrList.erase(iter);
-      //        continue;
-      //      }
     } else if (typeid(*instr) == typeid(assem::OperInstr)) {
       auto operInstr = dynamic_cast<assem::OperInstr *>(instr);
       AssignTemps(operInstr->src_);

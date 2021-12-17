@@ -80,19 +80,7 @@ temp::TempList *MoveInstr::Use() const {
 
 temp::TempList *OperInstr::Use() const {
   /* TODO: Put your lab6 code here */
-  auto ret = new temp::TempList({});
-  if (dst_) {
-    auto list = dst_->GetList();
-    for (auto temp : list) {
-      ret->Append(temp);
-    }
-  }
-  if (src_) {
-    auto list = src_->GetList();
-    for (auto temp : list) {
-      ret->Append(temp);
-    }
-  }
+  auto ret = src_ ? src_ : new temp::TempList({});
   return ret;
 }
 } // namespace assem

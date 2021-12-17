@@ -167,8 +167,8 @@ void LiveGraphFactory::InterfGraph() {
     auto instrNode = *instr_iter;
     auto instr = instrNode->NodeInfo();
 
-//    std::cout << "analyze instr: ";
-//    instr->Print(stdout, temp::Map::Name());
+    //    std::cout << "analyze instr: ";
+    //    instr->Print(stdout, temp::Map::Name());
 
     auto def = instr->Def();
     auto use = instr->Use();
@@ -185,10 +185,9 @@ void LiveGraphFactory::InterfGraph() {
         moves->Append(srcNode, dstNode);
         addMoveList(moveList, srcNode, srcNode, dstNode);
         addMoveList(moveList, dstNode, srcNode, dstNode);
-      } else {
-        // live = live \ use
-        live->Diff(use);
       }
+      // live = live \ use
+      live->Diff(use);
     }
 
     // live = live U def
@@ -198,8 +197,6 @@ void LiveGraphFactory::InterfGraph() {
       auto defNode = getNode(defTemp);
       for (auto liveTemp : live->GetList()) {
         auto liveNode = getNode(liveTemp);
-        if (liveTemp == defTemp)
-          continue;
         interf_graph->AddEdge(defNode, liveNode);
         interf_graph->AddEdge(liveNode, defNode);
 //        std::cout << "add edge: "
@@ -211,7 +208,7 @@ void LiveGraphFactory::InterfGraph() {
 
     // recover live;
     live->Assign(orgLive);
-//    std::cout << "finished" << std::endl;
+    //    std::cout << "finished" << std::endl;
   }
 }
 

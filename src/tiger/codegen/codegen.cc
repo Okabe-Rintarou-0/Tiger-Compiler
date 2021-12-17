@@ -113,11 +113,12 @@ void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
 void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
   if (typeid(*dst_) == typeid(tree::MemExp)) {
-    instr_list.Append(new assem::MoveInstr(
-        "movq `s0, (`d0)",
+    instr_list.Append(new assem::OperInstr(
+        "movq `s0, (`s1)", nullptr,
         new temp::TempList(
-            {dynamic_cast<tree::MemExp *>(dst_)->exp_->Munch(instr_list, fs)}),
-        new temp::TempList({src_->Munch(instr_list, fs)})));
+            {src_->Munch(instr_list, fs),
+             dynamic_cast<tree::MemExp *>(dst_)->exp_->Munch(instr_list, fs)}),
+        nullptr));
   } else {
     instr_list.Append(new assem::MoveInstr(
         "movq `s0, `d0", new temp::TempList({dst_->Munch(instr_list, fs)}),
@@ -219,8 +220,9 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
   auto expR = exp_->Munch(instr_list, fs);
   auto r = temp::TempFactory::NewTemp();
-  instr_list.Append(new assem::MoveInstr(
-      "movq (`s0), `d0", new temp::TempList({r}), new temp::TempList({expR})));
+  instr_list.Append(new assem::OperInstr("movq (`s0), `d0",
+                                         new temp::TempList({r}),
+                                         new temp::TempList({expR}), nullptr));
   return r;
 }
 
@@ -323,7 +325,7 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
     sprintf(assem, "movq $%d, `d0", wordSize);
 
     instr_list.Append(
-        new assem::MoveInstr(assem, new temp::TempList({r}), nullptr));
+        new assem::OperInstr(assem, new temp::TempList({r}), nullptr, nullptr));
 
     // replace pushq with this one.
     for (; exp_rit != exp_it; --exp_rit) {
@@ -331,9 +333,9 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
       auto argR = argExp->Munch(instr_list, fs);
       instr_list.Append(new assem::MoveInstr(
           "subq `s0, `d0", new temp::TempList({rsp}), new temp::TempList({r})));
-      instr_list.Append(new assem::MoveInstr("movq `s0, (`d0)",
-                                             new temp::TempList({rsp}),
-                                             new temp::TempList({argR})));
+      instr_list.Append(new assem::OperInstr("movq `s0, (`s1)", nullptr,
+                                             new temp::TempList({argR, rsp}),
+                                             nullptr));
     }
   }
   return tempList;

@@ -87,6 +87,8 @@ public:
     }
   }
 
+  inline void Clear() { temp_list_.clear(); }
+
   void Diff(TempList *another) {
     auto anotherList = another->GetList();
     for (auto anotherTemp : anotherList) {
@@ -118,6 +120,8 @@ public:
     for (; iter != temp_list_.end(); ++iter) {
       if (*iter == _old) {
         *iter = _new;
+        std::cout << "replace " << *temp::Map::Name()->Look(_old) << " to "
+                  << *temp::Map::Name()->Look(*iter) << std::endl;
       }
     }
   }

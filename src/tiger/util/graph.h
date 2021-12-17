@@ -97,6 +97,8 @@ public:
   // Make a NodeList
   NodeList<T>() = default;
   ~NodeList<T>() = default;
+  NodeList<T>(std::initializer_list<Node<T> *> node_list_)
+      : node_list_(node_list_) {}
 
   // Tell if "a" is in the list
   bool Contain(Node<T> *n);

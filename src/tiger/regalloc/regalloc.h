@@ -48,7 +48,9 @@ private:
   static constexpr int K = 15;
 
   std::map<temp::Temp *, int> colors;
+  std::map<live::INodePtr, int> degree;
   std::map<live::INodePtr, live::INodePtr> alias;
+  temp::TempList *alreadySpilled = new temp::TempList;
 
 //  graph::Table<temp::Temp, live::INode> *alias =
 //      new graph::Table<temp::Temp, live::INode>;
@@ -80,7 +82,7 @@ private:
   void LivenessAnalysis();
   live::MoveList *NodeMoves(live::INodePtr node);
   bool MoveRelated(live::INodePtr node);
-  void CheckDegree(live::INodePtr node);
+  void DecrementDegree(live::INodePtr m);
   void EnableMoves(graph::NodeList<temp::Temp> *nodes);
   void Simplify();
   void MakeWorkList();
