@@ -14,11 +14,6 @@ extern frame::RegManager *reg_manager;
 
 namespace ra {
 
-void printTempNode(live::INodePtr node) {
-  std::cout << *temp::Map::Name()->Look(node->NodeInfo()) << "(addr = " << node
-            << ")";
-}
-
 /* TODO: Put your lab6 code here */
 void RegAllocator::RegAlloc() {
   Color();
@@ -27,8 +22,6 @@ void RegAllocator::RegAlloc() {
 
 void RegAllocator::Color() {
   bool done;
-  int x = 0;
-  std::cout << "Called" << std::endl;
   do {
     done = true;
     LivenessAnalysis();
@@ -36,16 +29,12 @@ void RegAllocator::Color() {
     MakeWorkList();
     do {
       if (!simplifyWorkList->Empty()) {
-        //        std::cout << "Simplifying..." << std::endl;
         Simplify();
       } else if (!workListMoves->Empty()) {
-        //        std::cout << "Coalescing..." << std::endl;
         Coalesce();
       } else if (!freezeWorkList->Empty()) {
-        //        std::cout << "Freezing..." << std::endl;
         Freeze();
       } else if (!spillWorkList->Empty()) {
-        //        std::cout << "Selecting..." << std::endl;
         SelectSpill();
       }
     } while (!(simplifyWorkList->Empty() && workListMoves->Empty() &&
@@ -55,12 +44,7 @@ void RegAllocator::Color() {
       RewriteProgram();
       done = false;
     }
-    ++x;
-    std::cout << "Finished " << x << std::endl;
-    //  } while (0);
   } while (!done);
-
-  std::cout << "Finished All\n\n";
 }
 
 void RegAllocator::Build() {
@@ -71,26 +55,14 @@ void RegAllocator::Build() {
   degree.clear();
   auto &nodes = interf_graph->Nodes()->GetList();
   for (auto node : nodes) {
-    //    std::cout << "initing... " << node << ", "
-    //              << *(temp::Map::Name()->Look(node->NodeInfo())) <<
-    //              std::endl;
     degree[node] = node->OutDegree();
     alias[node] = node;
-    //    std::cout << node << " "
-    //              << "alias[" << *temp::Map::Name()->Look(node->NodeInfo())
-    //              << "] = " << node << std::endl;
     auto temp = node->NodeInfo();
     if (!temp->isBuiltin()) {
       initial->Append(node);
-      //      std::cout << "Init add node: ";
-      //      printTempNode(node);
-      //      std::cout << std::endl;
     } else {
       precolored->Append(node);
       colors[node->NodeInfo()] = node->NodeInfo()->Int();
-      //      std::cout << "init colors["
-      //                << *(temp::Map::Name()->Look(node->NodeInfo()))
-      //                << "] = " << node->NodeInfo()->Int() << std::endl;
     }
   }
 }
@@ -125,13 +97,7 @@ void RegAllocator::Combine(live::INodePtr u, live::INodePtr v) {
     spillWorkList->DeleteNode(v);
   }
   coalescedNodes->Append(v);
-  // alias[v] = u;
-  // now u will stand for v, and there will be nothing to do with v;
   alias[v] = u;
-  //  std::cout << v << " "
-  //            << "alias[" << *temp::Map::Name()->Look(v->NodeInfo())
-  //            << "] = " << u << std::endl;
-  // moveList[u] = moveList[u] U moveList[v]
   moveList->Set(u, moveList->Look(u)->Union(moveList->Look(v)));
   EnableMoves(new graph::NodeList<temp::Temp>({v}));
 
@@ -206,9 +172,6 @@ void RegAllocator::FreezeMoves(live::INodePtr u) {
     frozenMoves->Append(x, y);
     if (NodeMoves(v)->Empty() && degree[v] < K) {
       freezeWorkList->DeleteNode(v);
-      //      std::cout << "FreezeMoves add node: ";
-      //      printTempNode(v);
-      //      std::cout << std::endl;
       simplifyWorkList->Append(v);
     }
   }
@@ -216,15 +179,11 @@ void RegAllocator::FreezeMoves(live::INodePtr u) {
 
 void RegAllocator::Freeze() {
   auto u = freezeWorkList->PopFront();
-  //  std::cout << "Freeze add node: ";
-  //  printTempNode(u);
-  //  std::cout << std::endl;
   simplifyWorkList->Append(u);
   FreezeMoves(u);
 }
 
 void RegAllocator::MakeWorkList() {
-  //  std::cout << "Making worklist..." << std::endl;
   auto &nodes = initial->GetList();
   for (auto n : nodes) {
     if (degree[n] >= K) {
@@ -232,9 +191,6 @@ void RegAllocator::MakeWorkList() {
     } else if (MoveRelated(n)) {
       freezeWorkList->Append(n);
     } else {
-      //      std::cout << "makeworklist add node: ";
-      //      printTempNode(node);
-      //      std::cout << std::endl;
       simplifyWorkList->Append(n);
     }
   }
@@ -246,9 +202,6 @@ void RegAllocator::Simplify() {
     return;
 
   auto node = simplifyWorkList->PopFront();
-  //  std::cout << "simplify: ";
-  //  printTempNode(node);
-  //  std::cout << std::endl;
   selectStack.push(node);
 
   interf_graph->DeleteNode(node);
@@ -259,9 +212,6 @@ void RegAllocator::Simplify() {
 }
 
 void RegAllocator::DecrementDegree(live::INodePtr m) {
-  //  std::cout << "Checking node ";
-  //  printTempNode(node);
-  //  std::cout << std::endl;
   --degree[m];
   if (degree[m] == K - 1 && !precolored->Contain(m)) {
     EnableMoves(m->Succ()->Union(new graph::NodeList<temp::Temp>({m})));
@@ -269,9 +219,6 @@ void RegAllocator::DecrementDegree(live::INodePtr m) {
     if (MoveRelated(m)) {
       freezeWorkList->Append(m);
     } else {
-      //      std::cout << "check degree add node: ";
-      //      printTempNode(node);
-      //      std::cout << std::endl;
       simplifyWorkList->Append(m);
     }
   }
@@ -300,9 +247,6 @@ void RegAllocator::AddWorkList(live::INodePtr node) {
   if (!precolored->Contain(node) && !MoveRelated(node) && degree[node] < K) {
     freezeWorkList->DeleteNode(node);
     simplifyWorkList->Append(node);
-    //    std::cout << "AddWorkList add node: ";
-    //    printTempNode(node);
-    //    std::cout << std::endl;
   }
 }
 
@@ -343,10 +287,6 @@ void RegAllocator::SelectSpill() {
     spillWorkList->DeleteNode(m);
   else
     m = spillWorkList->PopFront();
-  //  auto m = spillWorkList->PopFront();
-  //  std::cout << "selectspill add node: ";
-  //  printTempNode(m);
-  //  std::cout << std::endl;
   simplifyWorkList->Append(m);
   FreezeMoves(m);
 }
@@ -355,11 +295,6 @@ void RegAllocator::Coalesce() {
   auto m = workListMoves->PopFront();
   auto x = GetAlias(m.first);
   auto y = GetAlias(m.second);
-  //  std::cout << "Try to coalesce: ";
-  //  printTempNode(x);
-  //  std::cout << ", ";
-  //  printTempNode(y);
-  //  std::cout << std::endl;
   live::INodePtr u, v;
   if (precolored->Contain(y)) {
     u = y;
@@ -370,8 +305,6 @@ void RegAllocator::Coalesce() {
     v = y;
     //    (u, v) = (x, y);
   }
-
-  //  std::cout << "u = " << u << "and v = " << v << std::endl;
 
   if (u == v) {
     coalescedMoves->Append(x, y);
@@ -405,8 +338,6 @@ void RegAllocator::LivenessAnalysis() {
 }
 
 void RegAllocator::RewriteProgram() {
-  //  std::cout << "rewriting prog\n";
-  //  LOG("rewriting prog\n");
   graph::NodeList<temp::Temp> *newTemps = new graph::NodeList<temp::Temp>;
   alreadySpilled->Clear();
   auto il = assemInstr->GetInstrList();
@@ -416,11 +347,6 @@ void RegAllocator::RewriteProgram() {
     auto newTemp = temp::TempFactory::NewTemp(); // namely vi
     alreadySpilled->Append(newTemp);
     auto oldTemp = v->NodeInfo();
-    //    std::cout << "For spilled temp: " << *temp::Map::Name()->Look(oldTemp)
-    //              << std::endl
-    //              << "We create a new temp: " <<
-    //              *temp::Map::Name()->Look(newTemp)
-    //              << std::endl;
     ++frame->localNumber;
     temp::TempList *src = nullptr, *dst = nullptr;
     auto &instrList = il->GetList();
@@ -461,7 +387,6 @@ void RegAllocator::RewriteProgram() {
   }
 
   spilledNodes->Clear();
-  //  initial = coloredNodes->Union(coalescedNodes)->Union(newTemps);
   coloredNodes->Clear();
   coalescedNodes->Clear();
 }
@@ -472,10 +397,7 @@ void RegAllocator::AssignTemps(temp::TempList *temps) {
   static auto regs = reg_manager->Registers();
   auto map = temp::Map::Name();
   for (auto temp : temps->GetList()) {
-    //    std::cout << "color is: " << colors[temp] << std::endl;
     auto tgt = map->Look(regs->NthTemp(colors[temp]));
-    //    std::cout << "assign: " << *map->Look(temp) << " to "
-    //              << *map->Look(regs->NthTemp(colors[temp])) << std::endl;
     map->Set(temp, tgt);
   }
 }

@@ -155,21 +155,6 @@ void ProgTr::Translate() { /* TODO: Put your lab5 code here */
   auto trExpAndTy = absyn_tree_->Translate(
       venv_.get(), tenv_.get(), main_level_.get(),
       temp::LabelFactory::NamedLabel("tigermain"), errormsg_.get());
-//  auto trStm = trExpAndTy->exp_->UnNx();
-//  trStm->Print(stdout, 0);
-//  auto fragList = frags->GetList();
-//  std::cout << "Frags: " << std::endl;
-//  for (auto frag : fragList) {
-//    if (typeid(*frag) == typeid(frame::ProcFrag)) {
-//      std::cout << "ProcFrag: " << std::endl;
-//      dynamic_cast<frame::ProcFrag *>(frag)->body_->Print(stdout, 0);
-//      std::cout << std::endl;
-//    } else {
-//      auto strfrag = dynamic_cast<frame::StringFrag *>(frag);
-//      std::cout << "label: " << strfrag->label_->Name()
-//                << " and string: " << strfrag->str_ << std::endl;
-//    }
-//  }
 }
 
 /**
@@ -203,8 +188,6 @@ tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto varEntry = dynamic_cast<env::VarEntry *>(venv->Look(sym_));
   auto access = varEntry->access_;
   tree::Exp *framePtr = FramePtr(level, access->level_);
-//  if (level == access->level_)
-//    errormsg->Error(pos_, sym_->Name() + " level equal");
   tr::Exp *varExp = new tr::ExExp(access->access_->ToExp(framePtr));
   return new tr::ExpAndTy(varExp, varEntry->ty_);
 }
@@ -312,8 +295,6 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     callExp = new tree::CallExp(new tree::NameExp(func_), argExpList);
   } else
     callExp = tr::ExternalCall(func_->Name(), argExpList);
-  //  errormsg->Error(pos_, "func: " + func_->Name() + " and size: " +
-  //                            std::to_string(argExpList->GetList().size()));
   return new tr::ExpAndTy(new tr::ExExp(callExp), funEntry->result_);
 }
 
@@ -598,16 +579,15 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
   auto iDec = new absyn::VarDec(0, var_, sym::Symbol::UniqueSymbol("int"), lo_);
+  auto limitSymbol = sym::Symbol::UniqueSymbol("__limit__");
   auto limitDec =
-      new absyn::VarDec(0, sym::Symbol::UniqueSymbol("__limit_var__"),
-                        sym::Symbol::UniqueSymbol("int"), hi_);
+      new absyn::VarDec(0, limitSymbol, sym::Symbol::UniqueSymbol("int"), hi_);
   auto decList = new absyn::DecList(limitDec);
   decList->Prepend(iDec);
 
   auto testExp = new absyn::OpExp(
       0, absyn::LE_OP, new absyn::VarExp(0, new absyn::SimpleVar(0, var_)),
-      new absyn::VarExp(0, new absyn::SimpleVar(
-                               0, sym::Symbol::UniqueSymbol("__limit_var__"))));
+      new absyn::VarExp(0, new absyn::SimpleVar(0, limitSymbol)));
 
   auto incrementExp = new absyn::AssignExp(
       0, new absyn::SimpleVar(0, var_),

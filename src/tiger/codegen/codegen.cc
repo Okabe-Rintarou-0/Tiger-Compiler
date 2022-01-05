@@ -26,7 +26,6 @@ void CodeGen::Codegen() { /* TODO: Put your lab5 code here */
   }
   frame::ProcEntryExit2(*instr_list);
   assem_instr_ = std::make_unique<cg::AssemInstr>(instr_list);
-  //  assem_instr_->Print(stdout, temp::Map::Name());
 }
 
 void AssemInstr::Print(FILE *out, temp::Map *map) const {

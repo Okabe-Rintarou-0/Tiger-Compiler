@@ -106,39 +106,6 @@ void LiveGraphFactory::LiveMap() {
              after_in_size >= before_in_size);
     }
   }
-
-  //  std::cout << "gen finish" << std::endl;
-  //  for (auto instrNode : instrNodes) {
-  //    std::cout << "for instr: ";
-  //    instrNode->NodeInfo()->Print(stdout, temp::Map::Name());
-  //
-  //    std::cout << "[use set]: " << std::endl;
-  //    for (auto tmp : instrNode->NodeInfo()->Use()->GetList()) {
-  //      std::cout << *temp::Map::Name()->Look(tmp) << ", ";
-  //    }
-  //    std::cout << std::endl;
-  //
-  //    std::cout << "[def set]: " << std::endl;
-  //    for (auto tmp : instrNode->NodeInfo()->Def()->GetList()) {
-  //      std::cout << *temp::Map::Name()->Look(tmp) << ", ";
-  //    }
-  //    std::cout << std::endl;
-  //
-  //    std::cout << "[in set]: " << std::endl;
-  //    auto my_in = in_->Look(instrNode);
-  //    for (auto tmp : my_in->GetList()) {
-  //      std::cout << *temp::Map::Name()->Look(tmp) << ", ";
-  //    }
-  //    std::cout << std::endl;
-  //
-  //    std::cout << "[out set]: " << std::endl;
-  //    auto my_out = out_->Look(instrNode);
-  //    for (auto tmp : my_out->GetList()) {
-  //      std::cout << *temp::Map::Name()->Look(tmp) << ", ";
-  //    }
-  //    std::cout << std::endl;
-  //    std::cout << std::endl;
-  //  }
 }
 
 INodePtr LiveGraphFactory::getNode(temp::Temp *temp) {
@@ -172,9 +139,6 @@ void LiveGraphFactory::InterfGraph() {
     auto instrNode = *instr_iter;
     auto instr = instrNode->NodeInfo();
 
-    //    std::cout << "analyze instr: ";
-    //    instr->Print(stdout, temp::Map::Name());
-
     auto def = instr->Def();
     auto use = instr->Use();
     auto live = out_->Look(instrNode);
@@ -204,16 +168,11 @@ void LiveGraphFactory::InterfGraph() {
         auto liveNode = getNode(liveTemp);
         interf_graph->AddEdge(defNode, liveNode);
         interf_graph->AddEdge(liveNode, defNode);
-//        std::cout << "add edge: "
-//                  << *temp::Map::Name()->Look(defNode->NodeInfo()) << " "
-//                  << *temp::Map::Name()->Look(liveNode->NodeInfo())
-//                  << std::endl;
       }
     }
 
     // recover live;
     live->Assign(orgLive);
-    //    std::cout << "finished" << std::endl;
   }
 }
 
