@@ -70,13 +70,11 @@ protected:
 
 class Access {
 public:
-  /* TODO: Put your lab5 code here */
   virtual tree::Exp *ToExp(tree::Exp *framePtr) const = 0;
   virtual ~Access() = default;
 };
 
 class Frame {
-  /* TODO: Put your lab5 code here */
 public:
   temp::Label *func_;
   std::list<Access *> formals_;
@@ -91,8 +89,6 @@ public:
   inline std::list<Access *> Formals() const { return formals_; }
 
   virtual Access *AllocLocal(bool escape) = 0;
-
-  virtual tree::Stm *Sp2Fp() = 0;
 };
 
 /**
@@ -150,7 +146,6 @@ private:
 tree::Stm *ProcEntryExit1(frame::Frame *frame, tree::Stm *stm);
 void ProcEntryExit2(assem::InstrList &instr_list);
 assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body);
-/* TODO: Put your lab5 code here */
 Frame *NewFrame(temp::Label *fun, const std::list<bool> formals);
 } // namespace frame
 

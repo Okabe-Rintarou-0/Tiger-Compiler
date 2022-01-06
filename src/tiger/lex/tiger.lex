@@ -5,7 +5,6 @@
   */
 
  /* You can add lex definitions here. */
- /* TODO: Put your lab2 code here */
 
 %x COMMENT STR IGNORE
 %%
@@ -79,7 +78,6 @@
 "function" {adjust(); return Parser::FUNCTION;}
 "var" {adjust(); return Parser::VAR;}
 "type" {adjust(); return Parser::TYPE;}
- /* TODO: Put your lab2 code here */
 \" { 
   more();
   errormsg_->tok_pos_ = char_pos_;

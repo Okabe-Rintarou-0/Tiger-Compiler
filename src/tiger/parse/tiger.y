@@ -41,7 +41,6 @@
   FUNCTION VAR TYPE
 
  /* token priority */
- /* TODO: Put your lab3 code here */
 
 /*
   %type binds the nonterminal/terminal symbols to a type defined(the type of semantics) in %union
@@ -263,4 +262,4 @@ recs: rec {$$ = new absyn::EFieldList($1);}
     $$ = cpy;
   } 
   ;  
- /* TODO: Put your lab3 code here */
+

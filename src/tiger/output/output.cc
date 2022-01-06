@@ -110,7 +110,7 @@ void StringFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   fprintf(out, "%s:\n", label_->Name().data());
   int length = static_cast<int>(str_.size());
   // It may contain zeros in the middle of string. To keep this work, we need
-  // to print all the charactors instead of using fprintf(str)
+  // to print all the characters instead of using fprintf(str)
   fprintf(out, ".long %d\n", length);
   fprintf(out, ".string \"");
   for (int i = 0; i < length; i++) {

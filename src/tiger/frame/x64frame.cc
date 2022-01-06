@@ -4,14 +4,18 @@
 extern frame::RegManager *reg_manager;
 
 namespace frame {
-/* TODO: Put your lab5 code here */
 class InFrameAccess : public Access {
 public:
   int offset;
 
   explicit InFrameAccess(int offset) : offset(offset) {}
-  /* TODO: Put your lab5 code here */
 
+  /**
+   * For those stored in the frame, the result should be the memory value of
+   * the address fp + offset Notice that fp is not necessarily the current
+   * frame, it could be some other frames. But fortunately we can compute the
+   * real fp with the help of static link.
+   **/
   tree::Exp *ToExp(tree::Exp *framePtr) const override {
     auto offsetExp = new tree::ConstExp(offset);
     auto addrExp = new tree::BinopExp(tree::PLUS_OP, framePtr, offsetExp);
@@ -24,28 +28,31 @@ public:
   temp::Temp *reg;
 
   explicit InRegAccess(temp::Temp *reg) : reg(reg) {}
-  /* TODO: Put your lab5 code here */
+
+  /**
+   * For those directly stored in registers, just return the register value.
+   */
   tree::Exp *ToExp(tree::Exp *framePtr) const override {
     return new tree::TempExp(reg);
   }
 };
 
 class X64Frame : public Frame {
-  /* TODO: Put you
-   * r lab5 code here */
-
 public:
   Access *AllocLocal(bool escape) override;
-
-  tree::Stm *Sp2Fp() override;
 
   inline int frameSize() const override {
     return localNumber * reg_manager->WordSize();
   }
-  /// TODO: fix here
 };
 
 Access *X64Frame::AllocLocal(bool escape) {
+  /**
+   * If the variable is escape, then put it in the stack(InFrameAccess)
+   * otherwise it should be stored directly in a certain register txx
+   * Don't worry about txx, since it will be allocated during register
+   * allocation in lab6
+   */
   Access *access = escape ? dynamic_cast<Access *>(new InFrameAccess(
                                 (-(++localNumber)) * reg_manager->WordSize()))
                           : dynamic_cast<Access *>(
@@ -53,21 +60,18 @@ Access *X64Frame::AllocLocal(bool escape) {
   return access;
 }
 
-tree::Stm *X64Frame::Sp2Fp() {
-  return new tree::MoveStm(new tree::TempExp(reg_manager->FramePointer()),
-                           new tree::TempExp(reg_manager->StackPointer()));
-}
-
-/* TODO: Put your lab5 code here */
+/**
+ * Create a new frame, determine how its formals will be stored.(by AllocLocal)
+ */
 Frame *NewFrame(temp::Label *fun, const std::list<bool> formals) {
   Frame *frame = new X64Frame;
-  int idx = 1;
   for (bool escape : formals) {
     frame->Append(frame->AllocLocal(escape));
   }
   frame->func_ = fun;
   return frame;
 }
+
 /**
   std::string prolog_;
   InstrList *body_;
@@ -76,9 +80,9 @@ Frame *NewFrame(temp::Label *fun, const std::list<bool> formals) {
 assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body) {
   char buf[256];
   std::string prolog;
-    sprintf(buf, ".set %s_framesize, %d\n", frame->func_->Name().c_str(),
-            frame->frameSize());
-    prolog = std::string(buf);
+  sprintf(buf, ".set %s_framesize, %d\n", frame->func_->Name().c_str(),
+          frame->frameSize());
+  prolog = std::string(buf);
   sprintf(buf, "%s:\n", frame->func_->Name().c_str());
   prolog.append(std::string(buf));
   sprintf(buf, "subq $%d, %%rsp\n", frame->frameSize());
@@ -95,9 +99,13 @@ void ProcEntryExit2(assem::InstrList &instr_list) {
   instr_list.Append(new assem::OperInstr("", nullptr, returnSink, nullptr));
 }
 
+/**
+ * What ProcEntryExit1 does:
+ * 1. Save and restore callee-saved registers
+ * 2. Deal with the view shift(Store the passed parameter)
+ */
 tree::Stm *ProcEntryExit1(frame::Frame *frame, tree::Stm *stm) {
   auto formals = frame->Formals();
-  int i = 0;
 
   auto temps = new temp::TempList(
       {temp::TempFactory::NewTemp(), temp::TempFactory::NewTemp(),
@@ -106,7 +114,7 @@ tree::Stm *ProcEntryExit1(frame::Frame *frame, tree::Stm *stm) {
 
   tree::Stm *seqStm = new tree::ExpStm(new tree::ConstExp(0));
 
-  // save callee saved registers;
+  // save callee-saved registers;
   auto calleeSaves = reg_manager->CalleeSaves();
   for (int i = 0; i < 6; ++i) {
     seqStm = new tree::SeqStm(
@@ -114,12 +122,11 @@ tree::Stm *ProcEntryExit1(frame::Frame *frame, tree::Stm *stm) {
                                   new tree::TempExp(calleeSaves->NthTemp(i))));
   }
 
-//  std::cout << frame->func_->Name() << " " << formals.size() << std::endl;
-
   // view shift
   auto argRegs = reg_manager->ArgRegs();
   auto fp = reg_manager->FramePointer();
   auto acc_it = formals.begin();
+  int i = 0;
   for (; acc_it != formals.end(); ++acc_it) {
     if (i >= 6)
       break;

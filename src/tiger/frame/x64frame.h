@@ -68,9 +68,10 @@ public:
     // rbx, rbp, r12, r13, r14, r15
     calleeSaves = new temp::TempList({rbx, rbp, r12, r13, r14, r15});
 
+    // calleeSaves + rsp + rax
     returnSink = new temp::TempList({rbx, rbp, r12, r13, r14, r15, rsp, rax});
   }
-  /* TODO: Put your lab5 code here */
+
   temp::TempList *Registers() override { return registers; }
 
   /**

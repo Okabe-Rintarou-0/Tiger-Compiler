@@ -34,7 +34,6 @@ MoveList *MoveList::Union(MoveList *list) {
         res->move_list_.push_back(move);
   }
   return res;
-
 }
 
 MoveList *MoveList::Intersect(MoveList *list) {
@@ -68,7 +67,6 @@ void LiveGraphFactory::init() {
 }
 
 void LiveGraphFactory::LiveMap() {
-  /* TODO: Put your lab6 code here */
   bool no_change = false;
   init();
   auto instrNodes = flowgraph_->Nodes()->GetList();
@@ -129,7 +127,6 @@ void LiveGraphFactory::addMoveList(MvList *moveList, INodePtr node,
 }
 
 void LiveGraphFactory::InterfGraph() {
-  /* TODO: Put your lab6 code here */
   auto interf_graph = live_graph_.interf_graph;
   auto moves = live_graph_.moves;
   auto moveList = live_graph_.moveList;

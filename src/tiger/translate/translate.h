@@ -47,8 +47,6 @@ public:
     return outermost;
   }
 
-  /* TODO: Put your lab5 code here */
-
   static Level *NewLevel(Level *parent, temp::Label *func,
                          std::list<bool> formals) {
     formals.push_front(true);
@@ -59,7 +57,6 @@ public:
 
 class ProgTr {
 public:
-  // TODO: Put your lab5 code here */
   ProgTr(std::unique_ptr<absyn::AbsynTree> absyn,
          std::unique_ptr<err::ErrorMsg> erromsg)
       : absyn_tree_(std::move(absyn)), errormsg_(std::move(erromsg)),

@@ -16,7 +16,7 @@ static char framesize[255];
 
 namespace cg {
 
-void CodeGen::Codegen() { /* TODO: Put your lab5 code here */
+void CodeGen::Codegen() {
   auto stmList = traces_->GetStmList()->GetList();
   auto *instr_list = new assem::InstrList;
   std::string_view fs;
@@ -36,21 +36,17 @@ void AssemInstr::Print(FILE *out, temp::Map *map) const {
 } // namespace cg
 
 namespace tree {
-/* TODO: Put your lab5 code here */
 
 void SeqStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   left_->Munch(instr_list, fs);
   right_->Munch(instr_list, fs);
 }
 
 void LabelStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   instr_list.Append(new assem::LabelInstr(label_->Name(), label_));
 }
 
 void JumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   instr_list.Append(new assem::OperInstr("jmp `j0", nullptr, nullptr,
                                          new assem::Targets(jumps_)));
 }
@@ -64,7 +60,6 @@ void JumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
   GE_OP,
  */
 void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   auto leftTemp = left_->Munch(instr_list, fs);
   auto rightTemp = right_->Munch(instr_list, fs);
   auto cmpInstr =
@@ -110,7 +105,6 @@ void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   if (typeid(*dst_) == typeid(tree::MemExp)) {
     instr_list.Append(new assem::OperInstr(
         "movq `s0, (`s1)", nullptr,
@@ -126,7 +120,6 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 void ExpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   exp_->Munch(instr_list, fs);
 }
 
@@ -139,7 +132,6 @@ void ExpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
   OR_OP,
  */
 temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   auto r = temp::TempFactory::NewTemp();
   switch (op_) {
   case PLUS_OP: {
@@ -216,7 +208,6 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 // r <- M[xxx]
 temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   auto expR = exp_->Munch(instr_list, fs);
   auto r = temp::TempFactory::NewTemp();
   instr_list.Append(new assem::OperInstr("movq (`s0), `d0",
@@ -226,8 +217,6 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *TempExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
-  //  return temp_;
   if (temp_ != reg_manager->FramePointer())
     return temp_;
   auto r = temp::TempFactory::NewTemp();
@@ -240,7 +229,6 @@ temp::Temp *TempExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *EseqExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   stm_->Munch(instr_list, fs);
   auto r = temp::TempFactory::NewTemp();
   instr_list.Append(
@@ -250,7 +238,6 @@ temp::Temp *EseqExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *NameExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   auto r = temp::TempFactory::NewTemp();
   char assem[100];
   sprintf(assem, "leaq %s(%%rip), `d0", name_->Name().c_str());
@@ -260,7 +247,6 @@ temp::Temp *NameExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   auto r = temp::TempFactory::NewTemp();
   char assem[100];
   sprintf(assem, "movq $%d, `d0", consti_);
@@ -270,11 +256,16 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   auto r = temp::TempFactory::NewTemp();
   auto funLabel = dynamic_cast<tree::NameExp *>(fun_)->name_->Name();
   auto tempList = args_->MunchArgs(instr_list, fs);
   int spillNumber = args_->GetList().size() - 6;
+
+  /**
+   * The caller-saved registers can be modified freely by the callee
+   * So putting them into the dst, indicating its value will be modified
+   * after calling. This is a conservative way.
+   */
   instr_list.Append(new assem::OperInstr("callq " + funLabel,
                                          reg_manager->CallerSaves(),
                                          reg_manager->ArgRegs(), nullptr));
@@ -296,7 +287,6 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
                                    std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   int i = 0;
   auto argRegs = reg_manager->ArgRegs();
   auto tempList = new temp::TempList;

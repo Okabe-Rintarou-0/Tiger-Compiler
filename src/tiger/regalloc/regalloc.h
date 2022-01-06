@@ -29,7 +29,6 @@ public:
 };
 
 class RegAllocator {
-  /* TODO: Put your lab6 code here */
 public:
   RegAllocator(frame::Frame *frame, std::unique_ptr<cg::AssemInstr> assemInstr)
       : frame(frame), assemInstr(std::move(assemInstr)),
@@ -52,8 +51,8 @@ private:
   std::map<live::INodePtr, live::INodePtr> alias;
   temp::TempList *alreadySpilled = new temp::TempList;
 
-//  graph::Table<temp::Temp, live::INode> *alias =
-//      new graph::Table<temp::Temp, live::INode>;
+  //  graph::Table<temp::Temp, live::INode> *alias =
+  //      new graph::Table<temp::Temp, live::INode>;
 
   graph::NodeList<temp::Temp> *initial = new graph::NodeList<temp::Temp>;
   graph::NodeList<temp::Temp> *precolored = new graph::NodeList<temp::Temp>;

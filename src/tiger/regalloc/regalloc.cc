@@ -14,7 +14,6 @@ extern frame::RegManager *reg_manager;
 
 namespace ra {
 
-/* TODO: Put your lab6 code here */
 void RegAllocator::RegAlloc() {
   Color();
   AssignRegisters();
@@ -113,8 +112,6 @@ void RegAllocator::Combine(live::INodePtr u, live::INodePtr v) {
 }
 
 void RegAllocator::AssignColors() {
-  std::cout << "assign colors\n";
-  //  LOG("assign colors\n");
   while (!selectStack.empty()) {
     auto n = selectStack.top();
     selectStack.pop();
@@ -144,16 +141,10 @@ void RegAllocator::AssignColors() {
     } else {
       coloredNodes->Append(n);
       int c = *okColors.begin();
-//      std::cout << "set " << *temp::Map::Name()->Look(n->NodeInfo())
-//                << "'s color to: " << c << std::endl;
       colors[n->NodeInfo()] = c;
     }
   }
-  //  std::cout << "HERE" << std::endl;
   for (auto n : coalescedNodes->GetList()) {
-//    std::cout << "set " << *temp::Map::Name()->Look(n->NodeInfo()) << " "
-//              << "'s color to: " << colors[GetAlias(n)->NodeInfo()]
-//              << std::endl;
     colors[n->NodeInfo()] = colors[GetAlias(n)->NodeInfo()];
   }
 }
@@ -239,7 +230,6 @@ void RegAllocator::EnableMoves(graph::NodeList<temp::Temp> *nodes) {
 }
 
 live::INodePtr RegAllocator::GetAlias(live::INodePtr node) {
-  //  assert(node);
   return coalescedNodes->Contain(node) ? GetAlias(alias[node]) : node;
 }
 
@@ -250,6 +240,7 @@ void RegAllocator::AddWorkList(live::INodePtr node) {
   }
 }
 
+// using George algorithm
 bool RegAllocator::OK(live::INodePtr t, live::INodePtr r) {
   return degree[t] < K || precolored->Contain(t) || r->Succ()->Contain(t);
 }
@@ -262,6 +253,7 @@ bool RegAllocator::CoalesceOK(live::INodePtr u, live::INodePtr v) {
   return true;
 }
 
+// determine whether to coalesce using Briggs algorithm
 bool RegAllocator::Conservative(graph::NodeList<temp::Temp> *nodes) {
   int k = 0;
   for (auto n : nodes->GetList()) {
@@ -416,7 +408,6 @@ bool RegAllocator::MeaninglessMove(temp::TempList *src, temp::TempList *dst) {
 
 void RegAllocator::AssignRegisters() {
   auto il = assemInstr.get()->GetInstrList();
-  //  /// TODO: something wrong with it.
   auto &instrList = il->GetList();
   auto iter = instrList.begin();
   char framesize_buf[256];
@@ -424,6 +415,7 @@ void RegAllocator::AssignRegisters() {
   std::string framesize(framesize_buf);
   for (; iter != instrList.end();) {
     auto instr = *iter;
+    // replace the 'xx_framesize' to number
     instr->assem_ = std::regex_replace(instr->assem_, std::regex(framesize),
                                        std::to_string(frame->frameSize()));
     if (typeid(*instr) == typeid(assem::MoveInstr)) {

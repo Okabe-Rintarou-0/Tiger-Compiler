@@ -2,7 +2,7 @@
 
 namespace fg {
 
-void FlowGraphFactory::AssemFlowGraph() { /* TODO: Put your lab6 code here */
+void FlowGraphFactory::AssemFlowGraph() {
   std::list<FNodePtr> jumpNodes;
 
   auto instrList = instr_list_->GetList();
@@ -51,35 +51,23 @@ void FlowGraphFactory::AssemFlowGraph() { /* TODO: Put your lab6 code here */
 
 namespace assem {
 
-temp::TempList *LabelInstr::Def() const {
-  /* TODO: Put your lab6 code here */
-  return new temp::TempList({});
-}
+temp::TempList *LabelInstr::Def() const { return new temp::TempList({}); }
 
-temp::TempList *MoveInstr::Def() const {
-  /* TODO: Put your lab6 code here */
-  return dst_;
-}
+temp::TempList *MoveInstr::Def() const { return dst_; }
 
 temp::TempList *OperInstr::Def() const {
-  /* TODO: Put your lab6 code here */
   auto ret = dst_ != nullptr ? dst_ : new temp::TempList({});
   return ret;
 }
 
-temp::TempList *LabelInstr::Use() const {
-  /* TODO: Put your lab6 code here */
-  return new temp::TempList({});
-}
+temp::TempList *LabelInstr::Use() const { return new temp::TempList({}); }
 
 temp::TempList *MoveInstr::Use() const {
-  /* TODO: Put your lab6 code here */
   auto ret = src_ ? src_ : new temp::TempList({});
   return ret;
 }
 
 temp::TempList *OperInstr::Use() const {
-  /* TODO: Put your lab6 code here */
   auto ret = src_ ? src_ : new temp::TempList({});
   return ret;
 }
