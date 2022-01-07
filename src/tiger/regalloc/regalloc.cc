@@ -2,13 +2,6 @@
 #include "tiger/output/logger.h"
 #include <regex>
 #include <set>
-#define LOG(format, args...)                                                   \
-  do {                                                                         \
-    FILE *debug_log = fopen("debug.log", "a+");                                \
-    fprintf(debug_log, "%d,%s: ", __LINE__, __func__);                         \
-    fprintf(debug_log, format, ##args);                                        \
-    fclose(debug_log);                                                         \
-  } while (0)
 
 extern frame::RegManager *reg_manager;
 
@@ -128,6 +121,9 @@ void RegAllocator::AssignColors() {
         okColors.insert(i);
     }
 
+    /**
+     * Assign colors, different from its neighbours
+     */
     for (auto w : n->Succ()->GetList()) {
       auto wAlias = GetAlias(w);
 
@@ -144,6 +140,11 @@ void RegAllocator::AssignColors() {
       colors[n->NodeInfo()] = c;
     }
   }
+
+  /**
+   * assign colors for those coalesced.
+   * Just assign them the same color as their alias.
+   */
   for (auto n : coalescedNodes->GetList()) {
     colors[n->NodeInfo()] = colors[GetAlias(n)->NodeInfo()];
   }
@@ -283,6 +284,9 @@ void RegAllocator::SelectSpill() {
   FreezeMoves(m);
 }
 
+/**
+ * Coalesce according to both Briggs and George algorithm
+ */
 void RegAllocator::Coalesce() {
   auto m = workListMoves->PopFront();
   auto x = GetAlias(m.first);
@@ -355,6 +359,10 @@ void RegAllocator::RewriteProgram() {
         dst = operInstr->dst_;
       }
 
+      /**
+       * Replace the old spilled register with new one
+       * And also create fetch store instructions for it
+       */
       if (src && src->Contain(oldTemp)) {
         src->Replace(oldTemp, newTemp);
         sprintf(buf, "movq (%s_framesize-%d)(`s0), `d0",
@@ -383,6 +391,9 @@ void RegAllocator::RewriteProgram() {
   coalescedNodes->Clear();
 }
 
+/**
+ * Assign registers for the colored temp
+ */
 void RegAllocator::AssignTemps(temp::TempList *temps) {
   if (!temps)
     return;
@@ -394,6 +405,10 @@ void RegAllocator::AssignTemps(temp::TempList *temps) {
   }
 }
 
+/**
+ *  Erase the meaningless move instructions:
+ *  e.g., a <- a, can be safely deleted after register allocation
+ */
 bool RegAllocator::MeaninglessMove(temp::TempList *src, temp::TempList *dst) {
   static auto map = temp::Map::Name();
   if (src && dst) {
