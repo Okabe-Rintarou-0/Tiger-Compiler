@@ -14,11 +14,11 @@ void FlowGraphFactory::AssemFlowGraph() {
 
     // for the case that instr is label
     if (typeid(*instr) == typeid(assem::LabelInstr)) {
-      auto labelInstr = dynamic_cast<assem::LabelInstr *>(instr);
+      auto labelInstr = static_cast<assem::LabelInstr *>(instr);
       auto label = labelInstr->label_;
       label_map_->Enter(label, curNode);
     } else if (typeid(*instr) == typeid(assem::OperInstr)) {
-      auto operInstr = dynamic_cast<assem::OperInstr *>(instr);
+      auto operInstr = static_cast<assem::OperInstr *>(instr);
       // if its a jump instr, then handle it later
       if (operInstr->jumps_) {
         jumpNodes.push_back(curNode);
@@ -38,7 +38,7 @@ void FlowGraphFactory::AssemFlowGraph() {
   // Then let's deal with those jumpNodes
   for (auto jumpNode : jumpNodes) {
     auto instr = jumpNode->NodeInfo();
-    auto jmpInstr = dynamic_cast<assem::OperInstr *>(instr);
+    auto jmpInstr = static_cast<assem::OperInstr *>(instr);
     auto label = (*jmpInstr->jumps_->labels_)[0];
     auto labelNode = label_map_->Look(label);
     // just link two.

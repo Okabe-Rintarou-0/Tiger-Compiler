@@ -12,7 +12,6 @@ void AbsynTree::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 type::Ty *SimpleVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 int labelcount, err::ErrorMsg *errormsg) const {
   env::EnvEntry *entry = venv->Look(sym_);
-  //  std::cout << "try to look up: " << sym_->Name() << std::endl;
   if (entry && typeid(*entry) == typeid(env::VarEntry)) {
     return (static_cast<env::VarEntry *>(entry))->ty_->ActualTy();
   } else {
@@ -77,7 +76,6 @@ type::Ty *StringExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 type::Ty *CallExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                               int labelcount, err::ErrorMsg *errormsg) const {
   env::EnvEntry *entry = venv->Look(func_);
-  //  std::cout << "try to look up func: " << func_->Name() << std::endl;
   if (entry && typeid(*entry) == typeid(env::FunEntry)) {
     env::FunEntry *funEntry = static_cast<env::FunEntry *>(entry);
     auto argList = funEntry->formals_->GetList();
@@ -100,8 +98,6 @@ type::Ty *CallExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     }
     return funEntry->result_;
   }
-  //    std::cout << "Trying to look up funentry: " << func_->Name() << " "
-  //              << funEntry->result_ << std::endl;
   else {
     errormsg->Error(pos_, "undefined function %s", func_->Name().c_str());
   }
@@ -210,17 +206,13 @@ type::Ty *IfExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   type::Ty *thenTy = then_->SemAnalyze(venv, tenv, labelcount, errormsg);
 
   type::Ty *retTy = nullptr;
-  //  std::cout << "begin ifexp" << std::endl;
   if (elsee_) {
     type::Ty *elseTy = elsee_->SemAnalyze(venv, tenv, labelcount, errormsg);
     retTy = elseTy;
-    //    std::cout << pos_ << ": judging if then is the same with else" <<
-    //    std::endl;
     if (!thenTy->IsSameType(elseTy)) {
       errormsg->Error(pos_, "then exp and else exp type mismatch");
     }
   } else {
-    //    std::cout << "its a if-then exp" << std::endl;
     if (!thenTy->IsSameType(type::VoidTy::Instance())) {
       errormsg->Error(pos_, "if-then exp's body must produce no value");
     }
@@ -229,7 +221,6 @@ type::Ty *IfExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   tenv->EndScope();
   venv->EndScope();
-  //  std::cout << "end ifexp" << std::endl;
   return retTy;
 }
 
@@ -360,7 +351,6 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
       return;
     }
     venv->Enter(fundec->name_, new env::FunEntry(formals, result_ty));
-    //    std::cout << "enter func: " << fundec->name_->Name() << std::endl;
   }
 
   for (auto fundec : fundecList) {
@@ -399,7 +389,6 @@ void VarDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
   }
   type::Ty *varTy = decTy ? decTy : initTy;
   venv->Enter(var_, new env::VarEntry(varTy));
-  //  std::cout << "enter var: " << var_->Name() << " " << varTy << std::endl;
 }
 
 bool existsCycle(type::Ty *ty) {
@@ -438,16 +427,12 @@ void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
       return;
     }
     tenv->Enter(nameNTy->name_, new type::NameTy(nameNTy->name_, nullptr));
-    //    std::cout << "add namety: " << nameNTy->name_->Name() << std::endl;
   }
 
   for (auto nameNTy : typeList) {
     auto nameTy = static_cast<type::NameTy *>(tenv->Look(nameNTy->name_));
     nameTy->ty_ = nameNTy->ty_->SemAnalyze(tenv, errormsg);
     tenv->Set(nameNTy->name_, nameTy);
-    //    std::cout << "now namety: " << nameNTy->name_->Name() << " is: " <<
-    //    nameTy
-    //              << std::endl;
   }
 
   for (auto nameNTy : typeList) {
@@ -472,8 +457,6 @@ type::Ty *RecordTy::SemAnalyze(env::TEnvPtr tenv,
     auto name = (*r_iter)->name_;
     auto type = (*r_iter)->typ_;
     type::Ty *ty = tenv->Look(type);
-    //    std::cout << "append: " << name->Name() << " " << (long long)ty
-    //              << std::endl;
     if (ty == nullptr) {
       errormsg->Error((*r_iter)->pos_, "undefined type %s",
                       type->Name().c_str());

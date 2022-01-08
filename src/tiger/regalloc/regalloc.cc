@@ -350,11 +350,11 @@ void RegAllocator::RewriteProgram() {
     for (; iter != instrList.end(); ++iter) {
       auto instr = *iter;
       if (typeid(*instr) == typeid(assem::MoveInstr)) {
-        auto moveInstr = dynamic_cast<assem::MoveInstr *>(instr);
+        auto moveInstr = static_cast<assem::MoveInstr *>(instr);
         src = moveInstr->src_;
         dst = moveInstr->dst_;
       } else if (typeid(*instr) == typeid(assem::OperInstr)) {
-        auto operInstr = dynamic_cast<assem::OperInstr *>(instr);
+        auto operInstr = static_cast<assem::OperInstr *>(instr);
         src = operInstr->src_;
         dst = operInstr->dst_;
       }
@@ -434,7 +434,7 @@ void RegAllocator::AssignRegisters() {
     instr->assem_ = std::regex_replace(instr->assem_, std::regex(framesize),
                                        std::to_string(frame->frameSize()));
     if (typeid(*instr) == typeid(assem::MoveInstr)) {
-      auto moveInstr = dynamic_cast<assem::MoveInstr *>(instr);
+      auto moveInstr = static_cast<assem::MoveInstr *>(instr);
       auto src = moveInstr->src_;
       auto dst = moveInstr->dst_;
       if (!MeaninglessMove(src, dst)) {
@@ -445,7 +445,7 @@ void RegAllocator::AssignRegisters() {
         continue;
       }
     } else if (typeid(*instr) == typeid(assem::OperInstr)) {
-      auto operInstr = dynamic_cast<assem::OperInstr *>(instr);
+      auto operInstr = static_cast<assem::OperInstr *>(instr);
       AssignTemps(operInstr->src_);
       AssignTemps(operInstr->dst_);
     }

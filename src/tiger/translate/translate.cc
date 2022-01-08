@@ -172,7 +172,7 @@ tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
-  auto varEntry = dynamic_cast<env::VarEntry *>(venv->Look(sym_));
+  auto varEntry = static_cast<env::VarEntry *>(venv->Look(sym_));
   auto access = varEntry->access_;
   tree::Exp *framePtr = FramePtr(level, access->level_);
   tr::Exp *varExp = new tr::ExExp(access->access_->ToExp(framePtr));
@@ -189,7 +189,7 @@ tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto expAndTy = var_->Translate(venv, tenv, level, label, errormsg);
   auto varExp = expAndTy->exp_->UnEx();
   auto varTy = expAndTy->ty_;
-  auto recordTy = dynamic_cast<type::RecordTy *>(varTy->ActualTy());
+  auto recordTy = static_cast<type::RecordTy *>(varTy->ActualTy());
   auto fieldList = recordTy->fields_->GetList();
   int idx = 0;
   int wordSize = reg_manager->WordSize();
@@ -216,7 +216,7 @@ tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   auto expAndTy = var_->Translate(venv, tenv, level, label, errormsg);
   auto varExp = expAndTy->exp_->UnEx();
-  auto arrayTy = dynamic_cast<type::ArrayTy *>(expAndTy->ty_);
+  auto arrayTy = static_cast<type::ArrayTy *>(expAndTy->ty_);
 
   int wordSize = reg_manager->WordSize();
   auto index =
@@ -273,7 +273,7 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         arg->Translate(venv, tenv, level, label, errormsg)->exp_->UnEx();
     argExpList->Append(argExp);
   }
-  auto funEntry = dynamic_cast<env::FunEntry *>(venv->Look(func_));
+  auto funEntry = static_cast<env::FunEntry *>(venv->Look(func_));
   tree::Exp *callExp = nullptr;
   auto parent = funEntry->level_->parent_;
   if (parent) {
@@ -695,7 +695,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     auto paramList = params->GetList();
     auto param_it = paramList.begin();
 
-    auto funEntry = dynamic_cast<env::FunEntry *>(venv->Look(fundec->name_));
+    auto funEntry = static_cast<env::FunEntry *>(venv->Look(fundec->name_));
     auto funcLevel = funEntry->level_;
     auto formalAccessList = funcLevel->frame_->Formals();
     auto acc_it = formalAccessList.begin();

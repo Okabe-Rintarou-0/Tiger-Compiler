@@ -110,7 +110,7 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
         "movq `s0, (`s1)", nullptr,
         new temp::TempList(
             {src_->Munch(instr_list, fs),
-             dynamic_cast<tree::MemExp *>(dst_)->exp_->Munch(instr_list, fs)}),
+             static_cast<tree::MemExp *>(dst_)->exp_->Munch(instr_list, fs)}),
         nullptr));
   } else {
     instr_list.Append(new assem::MoveInstr(
@@ -257,7 +257,7 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   auto r = temp::TempFactory::NewTemp();
-  auto funLabel = dynamic_cast<tree::NameExp *>(fun_)->name_->Name();
+  auto funLabel = static_cast<tree::NameExp *>(fun_)->name_->Name();
   auto tempList = args_->MunchArgs(instr_list, fs);
   int spillNumber = args_->GetList().size() - 6;
 

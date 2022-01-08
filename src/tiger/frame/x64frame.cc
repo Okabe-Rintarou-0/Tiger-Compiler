@@ -53,9 +53,9 @@ Access *X64Frame::AllocLocal(bool escape) {
    * Don't worry about txx, since it will be allocated during register
    * allocation in lab6
    */
-  Access *access = escape ? dynamic_cast<Access *>(new InFrameAccess(
+  Access *access = escape ? static_cast<Access *>(new InFrameAccess(
                                 (-(++localNumber)) * reg_manager->WordSize()))
-                          : dynamic_cast<Access *>(
+                          : static_cast<Access *>(
                                 new InRegAccess(temp::TempFactory::NewTemp()));
   return access;
 }

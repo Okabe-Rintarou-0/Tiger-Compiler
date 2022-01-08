@@ -90,7 +90,7 @@ struct ExpRefList {
 };
 
 ExpRefList *GetCallRlist(tree::Exp *exp) {
-  auto callexp = dynamic_cast<tree::CallExp *>(exp);
+  auto callexp = static_cast<tree::CallExp *>(exp);
   assert(callexp);
   tree::ExpList *args = callexp->args_;
   auto *rlist = new ExpRefList(callexp->fun_, args->GetNonConstList().begin(),
@@ -105,7 +105,7 @@ namespace canon {
 void Canon::Trace(std::list<tree::Stm *> &stms) {
   tree::Stm *last = stms.back();
 
-  auto lab = dynamic_cast<tree::LabelStm *>(stms.front());
+  auto lab = static_cast<tree::LabelStm *>(stms.front());
   assert(lab);
   block_env_->Enter(lab->label_, nullptr);
 
@@ -166,7 +166,7 @@ tree::StmList *Canon::GetNext() {
     return last_stm_list;
   } else {
     tree::StmList *s = block_.stm_lists_->stmlist_list_.front();
-    auto lab = dynamic_cast<tree::LabelStm *>(s->stm_list_.front());
+    auto lab = static_cast<tree::LabelStm *>(s->stm_list_.front());
     assert(lab);
     if (block_env_->Look(lab->label_)) { // label_ exists in the table
       Trace(s->stm_list_);
@@ -233,7 +233,7 @@ canon::StmListList *Canon::BasicBlocks() {
 tree::StmList *Canon::TraceSchedule() {
   tree::StmList *stm_traces;
   for (auto stm_list : block_.stm_lists_->stmlist_list_) {
-    auto lab = dynamic_cast<tree::LabelStm *>(stm_list->stm_list_.front());
+    auto lab = static_cast<tree::LabelStm *>(stm_list->stm_list_.front());
     assert(lab);
     block_env_->Enter(lab->label_, stm_list);
   }
